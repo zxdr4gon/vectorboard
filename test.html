@@ -128,12 +128,36 @@
   }
   .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
 
-  @media (max-width:720px){
-    .size-group label{ display:none; }
-    .size-group input[type=range]{ width:56px; }
-    .readout{ min-width:0; }
-    .help-pop{ right:16px; left:16px; width:auto; }
+  /* cross platform UI adjustments*/
+  @media (max-width: 950px) {
+    /* Hide some text to save space */
+    .size-group label { display: none; }
+    .size-group input[type=range] { width: 56px; }
+    
+    /* Move the main drawing tools to the bottom */
+    .panel-tools { 
+      top: auto; 
+      bottom: 24px; 
+      width: 95vw;
+      border-radius: var(--radius-lg);
+    }
+    
+    /* Center the action buttons at the top */
+    .panel-view {
+       right: 50%;
+       transform: translateX(50%);
+       width: max-content;
+       max-width: 95vw;
+       justify-content: center;
+       flex-wrap: wrap;
+    }
+
+    /* Hide the coordinate readout on small screens to reduce clutter */
+    .readout { display: none; }
+    
+    .help-pop { right: 16px; left: 16px; width: auto; }
   }
+
 </style>
 </head>
 <body>
