@@ -128,36 +128,20 @@
   }
   .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
 
-  /* cross platform UI adjustments*/
-  @media (max-width: 950px) {
-    /* Hide some text to save space */
-    .size-group label { display: none; }
-    .size-group input[type=range] { width: 56px; }
-    
-    /* Move the main drawing tools to the bottom */
-    .panel-tools { 
-      top: auto; 
-      bottom: 24px; 
-      width: 95vw;
-      border-radius: var(--radius-lg);
-    }
-    
-    /* Center the action buttons at the top */
-    .panel-view {
-       right: 50%;
-       transform: translateX(50%);
-       width: max-content;
-       max-width: 95vw;
-       justify-content: center;
-       flex-wrap: wrap;
-    }
-
-    /* Hide the coordinate readout on small screens to reduce clutter */
-    .readout { display: none; }
-    
-    .help-pop { right: 16px; left: 16px; width: auto; }
+  /* Minimize Panel Logic */
+  .panel.collapsed > *:not(.toggle-btn) {
+    display: none !important;
   }
-
+  .toggle-btn {
+    color: var(--signal); 
+  }
+  
+  @media (max-width:720px){
+    .size-group label{ display:none; }
+    .size-group input[type=range]{ width:56px; }
+    .readout{ min-width:0; }
+    .help-pop{ right:16px; left:16px; width:auto; }
+  }
 </style>
 </head>
 <body>
@@ -166,6 +150,10 @@
 
 <!-- Tools + brush panel -->
 <div class="panel panel-tools" id="toolPanel">
+  <button class="icon-btn square toggle-btn" title="Toggle Menu">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 12 6 20 14"></polyline></svg>
+  </button>
+  
   <button class="tool-btn" data-tool="pen" title="Pen (P)" aria-label="Pen">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l1-5L15.5 4.5l4 4L9 19l-5 1z"/><path d="M13.5 6.5l4 4"/></svg>
   </button>
@@ -213,6 +201,9 @@
 
 <!-- View + export panel -->
 <div class="panel panel-view" id="viewPanel">
+  <button class="icon-btn square toggle-btn" title="Toggle Menu">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 12 6 20 14"></polyline></svg>
+  </button>
   <button class="icon-btn" id="resetViewBtn" title="Reset view (0)">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l2.5 2.5"/></svg>
     Reset
@@ -824,6 +815,20 @@
     const factor = Math.exp(-e.deltaY * 0.0016);
     zoomAt(e.clientX, e.clientY, factor);
   }, { passive:false });
+
+  // Minimize Panel Logic
+  document.querySelectorAll('.toggle-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const panel = e.target.closest('.panel');
+      panel.classList.toggle('collapsed');
+      
+      // Swap the arrow icon up/down
+      const isCollapsed = panel.classList.contains('collapsed');
+      btn.innerHTML = isCollapsed 
+        ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 10 12 18 20 10"></polyline></svg>'
+        : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 12 6 20 14"></polyline></svg>';
+    });
+  });
 
   // ---- keyboard ------------------------------------------------------------
   window.addEventListener('keydown', e => {
