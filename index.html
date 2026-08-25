@@ -198,6 +198,9 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
     Clear
   </button>
+  <button class="icon-btn" id="saveFileBtn" title="Save to File">Save File</button>
+  <button class="icon-btn" id="loadFileBtn" title="Open File">Open File</button>
+  <input type="file" id="fileInput" style="display:none" accept=".json">
   <div class="divider"></div>
   <button class="icon-btn" id="exportPngBtn" title="Export PNG">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15v3a2 2 0 002 2h12a2 2 0 002-2v-3"/><path d="M7 10l5 5 5-5"/><path d="M12 15V4"/></svg>
@@ -864,6 +867,42 @@
       showToast('Canvas cleared');
     }
   });
+
+  // save/load logic
+
+  // Save to JSON File
+  document.getElementById('saveFileBtn').addEventListener('click', () => {
+    if (!strokes.length) { showToast('Nothing to save yet'); return; }
+    const data = JSON.stringify(strokes);
+    const blob = new Blob([data], {type: 'application/json'});
+    const url = URL.createObjectURL(blob);
+    triggerDownload(url, 'my-drawing.json');
+    showToast('File saved');
+  });
+
+  // Load from JSON File
+  document.getElementById('loadFileBtn').addEventListener('click', () => {
+    document.getElementById('fileInput').click();
+  });
+  
+  document.getElementById('fileInput').addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        strokes = JSON.parse(ev.target.result);
+        localStorage.setItem('infinite-canvas-save', JSON.stringify(strokes));
+        resetView();
+        showToast('File loaded');
+      } catch (err) {
+        showToast('Error loading file');
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = ''; // Reset input
+  });
+  //end
 
   document.getElementById('helpBtn').addEventListener('click', e => { e.stopPropagation(); helpPop.classList.toggle('show'); });
   window.addEventListener('click', e => { if (!helpPop.contains(e.target) && e.target.id !== 'helpBtn') helpPop.classList.remove('show'); });
