@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Vector Sketch — Infinite Canvas</title>
-<link rel="icon" type="image/png" href="https://img.icons8.com/3d-fluency/94/whiteboard.png">
+<link rel="icon" type="image/png" href="https://img.icons8.com/3d-sugary/100/class-1.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -29,6 +29,14 @@
   *{box-sizing:border-box;}
   html,body{margin:0;height:100%;overflow:hidden;background:var(--paper);font-family:var(--font-ui);}
   #c{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;}
+
+  html, body {
+    transition: background 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  body.dark-mode {
+    --paper: #121316;
+  }
 
   .panel{
     position:fixed;
@@ -210,6 +218,11 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l2.5 2.5"/></svg>
     Reset
   </button>
+  <button class="icon-btn square" id="themeBtn" title="Toggle Dark/Light Mode" aria-label="Toggle Theme">
+    <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+    </svg>
+  </button>
   <!-- clear canvas -->
   <button class="icon-btn" id="clearCanvasBtn" title="Clear Canvas">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
@@ -297,6 +310,7 @@
 
   const camera = { panX: 0, panY: 0, zoom: 1 }; // world->screen: s = w*zoom + pan
 
+  let snapTimer = null;
   let strokes = [];          // the entire drawing, in world space
   let nextId = 1;
   const selectedIds = new Set();
@@ -489,16 +503,70 @@
     requestRenderNow();
   }
   function moveStroke(e){
-    const minDist = 1.2 / camera.zoom; // screen-space-consistent sampling density
-    for (const ev of getEvents(e)){
-      const p = screenToWorld(ev.clientX, ev.clientY);
-      if (Math.hypot(p.x-lastDrawPoint.x, p.y-lastDrawPoint.y) < minDist) continue;
-      currentStroke.points.push({ x:p.x, y:p.y, p:normalizedPressure(ev) });
-      lastDrawPoint = p;
-    }
-    requestRenderNow();
+  const minDist = 1.2 / camera.zoom; 
+  for (const ev of getEvents(e)){
+    const p = screenToWorld(ev.clientX, ev.clientY);
+    if (Math.hypot(p.x-lastDrawPoint.x, p.y-lastDrawPoint.y) < minDist) continue;
+    currentStroke.points.push({ x:p.x, y:p.y, p:normalizedPressure(ev) });
+    lastDrawPoint = p;
   }
-  function endStroke(){ currentStroke = null; lastDrawPoint = null; }
+
+  clearTimeout(snapTimer);
+  snapTimer = setTimeout(() => {
+    if (!currentStroke || currentStroke.points.length < 5) return;
+
+    const pts = currentStroke.points;
+    const start = pts[0];
+    const end = pts[pts.length - 1];
+
+    // Measure bounding box bounds
+    let minX = pts[0].x, maxX = pts[0].x, minY = pts[0].y, maxY = pts[0].y;
+    for (const p of pts) {
+      if (p.x < minX) minX = p.x;
+      if (p.x > maxX) maxX = p.x;
+      if (p.y < minY) minY = p.y;
+      if (p.y > maxY) maxY = p.y;
+    }
+
+    const width = maxX - minX;
+    const height = maxY - minY;
+    const bboxDiag = Math.hypot(width, height);
+    const endGap = Math.hypot(end.x - start.x, end.y - start.y);
+
+    // If start & end points meet within 45% of total size -> Snap Circle
+    if (endGap < bboxDiag * 0.45 && pts.length > 8) {
+      const centerX = minX + width / 2;
+      const centerY = minY + height / 2;
+      const radius = (width + height) / 4;
+      const circlePoints = [];
+      const numSegments = 40;
+
+      for (let i = 0; i <= numSegments; i++) {
+        const angle = (i / numSegments) * Math.PI * 2;
+        circlePoints.push({
+          x: centerX + radius * Math.cos(angle),
+          y: centerY + radius * Math.sin(angle),
+          p: start.p || 0.5
+        });
+      }
+      currentStroke.points = circlePoints;
+      showToast('Snapped to circle');
+    } else {
+      // Otherwise snap to straight line
+      currentStroke.points = [start, end];
+      showToast('Snapped to line');
+    }
+
+    requestRenderNow();
+  }, 600);
+
+  requestRenderNow();
+}
+  function endStroke(){ 
+  clearTimeout(snapTimer);
+  currentStroke = null; 
+  lastDrawPoint = null; 
+}
 
   // ---- erasing ----------------------------------------------------------
   function startErase(e, mode){
@@ -590,7 +658,50 @@
     let mult = norm < 1.5 ? 1 : norm < 3.5 ? 2 : norm < 7.5 ? 5 : 10;
     return mag * mult;
   }
+  // ---- Theme State ----
+  let isDarkMode = localStorage.getItem('canvas-theme') === 'dark';
+
+  function getThemeColors() {
+    return isDarkMode ? {
+      paper: '#121316',
+      gridMajor: 'rgba(255,255,255,0.07)',
+      gridMinor: 'rgba(255,255,255,0.025)',
+      axisX: 'rgba(255,92,92,0.45)',
+      axisY: 'rgba(53,224,198,0.45)'
+    } : {
+      paper: '#E9EAEE',
+      gridMajor: 'rgba(20,21,26,0.10)',
+      gridMinor: 'rgba(20,21,26,0.045)',
+      axisX: 'rgba(255,92,92,0.35)',
+      axisY: 'rgba(61,92,255,0.35)'
+    };
+  }
+
+  function applyTheme() {
+    document.body.classList.toggle('dark-mode', isDarkMode);
+    const icon = document.getElementById('themeIcon');
+    if (icon) {
+      // Swaps between Sun and Moon SVG icons
+      icon.innerHTML = isDarkMode
+        ? '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>'
+        : '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>';
+    }
+    requestRenderNow();
+  }
+
+  function getStrokeColor(color) {
+  if (!isDarkMode) return color;
+  const c = color.toLowerCase();
+  // Inverts black or near-black ink to white in dark mode
+  if (c === '#000000' || c === '#14151a' || c === '#121316' || c === 'black') {
+    return '#ffffff';
+  }
+  return color;
+}
+
+  // ---- Dynamic Grid & Render ----
   function drawGrid(){
+    const theme = getThemeColors();
     const topLeft = screenToWorld(0, 0);
     const bottomRight = screenToWorld(window.innerWidth, window.innerHeight);
     const spacing = niceGridSpacing(camera.zoom, 90);
@@ -600,21 +711,21 @@
     const startI = Math.floor(topLeft.x / spacing);
     for (let i = startI; i*spacing < bottomRight.x + spacing; i++){
       const x = i*spacing;
-      ctx.strokeStyle = (i % majorEvery === 0) ? 'rgba(20,21,26,0.10)' : 'rgba(20,21,26,0.045)';
+      ctx.strokeStyle = (i % majorEvery === 0) ? theme.gridMajor : theme.gridMinor;
       ctx.beginPath(); ctx.moveTo(x, topLeft.y); ctx.lineTo(x, bottomRight.y); ctx.stroke();
     }
     const startJ = Math.floor(topLeft.y / spacing);
     for (let j = startJ; j*spacing < bottomRight.y + spacing; j++){
       const y = j*spacing;
-      ctx.strokeStyle = (j % majorEvery === 0) ? 'rgba(20,21,26,0.10)' : 'rgba(20,21,26,0.045)';
+      ctx.strokeStyle = (j % majorEvery === 0) ? theme.gridMajor : theme.gridMinor;
       ctx.beginPath(); ctx.moveTo(topLeft.x, y); ctx.lineTo(bottomRight.x, y); ctx.stroke();
     }
     if (topLeft.x <= 0 && bottomRight.x >= 0){
-      ctx.strokeStyle = 'rgba(255,92,92,0.35)';
+      ctx.strokeStyle = theme.axisX;
       ctx.beginPath(); ctx.moveTo(0, topLeft.y); ctx.lineTo(0, bottomRight.y); ctx.stroke();
     }
     if (topLeft.y <= 0 && bottomRight.y >= 0){
-      ctx.strokeStyle = 'rgba(61,92,255,0.35)';
+      ctx.strokeStyle = theme.axisY;
       ctx.beginPath(); ctx.moveTo(topLeft.x, 0); ctx.lineTo(bottomRight.x, 0); ctx.stroke();
     }
     ctx.restore();
@@ -626,7 +737,7 @@
   function drawStroke(targetCtx, stroke){
     const pts = stroke.points;
     if (!pts.length) return;
-    targetCtx.strokeStyle = stroke.color;
+    targetCtx.strokeStyle = getStrokeColor(stroke.color);
     targetCtx.fillStyle = stroke.color;
     targetCtx.lineCap = 'round';
     targetCtx.lineJoin = 'round';
@@ -691,9 +802,10 @@
   }
 
   function render(){
+    const theme = getThemeColors();
     ctx.setTransform(1,0,0,1,0,0);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = PAPER_COLOR;
+    ctx.fillStyle = theme.paper;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     ctx.setTransform(dpr*camera.zoom, 0, 0, dpr*camera.zoom, dpr*camera.panX, dpr*camera.panY);
@@ -706,6 +818,13 @@
     drawEraserPreview();
     ctx.setTransform(1,0,0,1,0,0);
   }
+
+  // ---- Listener & Init wiring ----
+  document.getElementById('themeBtn').addEventListener('click', () => {
+    isDarkMode = !isDarkMode;
+    localStorage.setItem('canvas-theme', isDarkMode ? 'dark' : 'light');
+    applyTheme();
+  });
 
   function requestRenderNow(){ needsRender = true; }
   function updateReadouts(){
@@ -1010,6 +1129,7 @@
 
   // ---- init ---------------------------------------------------------------
   function init(){
+    applyTheme();
     loadLocalStrokes();
     resize();
     camera.panX = window.innerWidth / 2;
