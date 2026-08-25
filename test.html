@@ -61,6 +61,21 @@
   button{ font-family:inherit; border:none; background:transparent; color:var(--ink-soft); cursor:pointer; }
   button:focus-visible, input:focus-visible{ outline:2px solid var(--signal); outline-offset:2px; }
 
+  .canvas-text-input {
+      position: absolute;
+      background: transparent;
+      border: 1px dashed var(--signal, #35E0C6);
+      outline: none;
+      resize: none;
+      overflow: hidden;
+      padding: 0;
+      margin: 0;
+      line-height: 1.2;
+      font-family: system-ui, -apple-system, sans-serif;
+      z-index: 10;
+      box-sizing: border-box;
+    }
+
   .tool-btn{
     width:36px; height:36px; display:flex; align-items:center; justify-content:center;
     border-radius:var(--radius-sm);
@@ -172,6 +187,13 @@
   <button class="tool-btn" data-tool="eraser-precision" title="Precision Eraser — cuts through paths (X)" aria-label="Precision Eraser">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="8.5" y2="12"/><line x1="15.5" y1="12" x2="21" y2="12"/><rect x="8.5" y="8" width="7" height="8" rx="2"/></svg>
   </button>
+  <button class="icon-btn" id="textToolBtn" data-tool="text" title="Add Text">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="4 7 4 4 20 4 20 7"></polyline>
+    <line x1="9" y1="20" x2="15" y2="20"></line>
+    <line x1="12" y1="4" x2="12" y2="20"></line>
+  </svg>
+</button>
   <button class="tool-btn" data-tool="hand" title="Hand / Pan (H)" aria-label="Hand tool">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="10.5" width="12" height="8.5" rx="3"/><line x1="9" y1="10.5" x2="9" y2="5"/><line x1="12" y1="10.5" x2="12" y2="4"/><line x1="15" y1="10.5" x2="15" y2="5.5"/></svg>
   </button>
@@ -310,6 +332,9 @@
 
   const camera = { panX: 0, panY: 0, zoom: 1 }; // world->screen: s = w*zoom + pan
 
+  // ---- app state ----
+  let activeTextInput = null;
+  
   let snapTimer = null;
   let strokes = [];          // the entire drawing, in world space
   let nextId = 1;
@@ -567,6 +592,64 @@
   currentStroke = null; 
   lastDrawPoint = null; 
 }
+
+  function endStroke(){ 
+    clearTimeout(snapTimer);
+    currentStroke = null; 
+    lastDrawPoint = null; 
+  }
+
+  // ==========================================
+  // PASTE STEP A RIGHT HERE (Canvas Text Listener & Overlay Function)
+  // ==========================================
+  canvas.addEventListener('click', (e) => {
+    if (currentTool !== 'text') return;
+    if (activeTextInput) commitTextInput();
+
+    const worldPos = screenToWorld(e.clientX, e.clientY);
+    createTextInputOverlay(e.clientX, e.clientY, worldPos);
+  });
+
+  function createTextInputOverlay(screenX, screenY, worldPos, existingNode = null) {
+    const textarea = document.createElement('textarea');
+    textarea.className = 'canvas-text-input';
+    
+    const fontSize = (existingNode ? existingNode.fontSize : currentSize * 4);
+    const scaledSize = fontSize * camera.zoom;
+    
+    textarea.style.left = `${screenX}px`;
+    textarea.style.top = `${screenY}px`;
+    textarea.style.fontSize = `${scaledSize}px`;
+    textarea.style.color = existingNode ? existingNode.color : currentColor;
+    textarea.value = existingNode ? existingNode.text : '';
+    
+    textarea.dataset.worldX = existingNode ? existingNode.x : worldPos.x;
+    textarea.dataset.worldY = existingNode ? existingNode.y : worldPos.y;
+    textarea.dataset.fontSize = fontSize;
+    textarea.dataset.id = existingNode ? existingNode.id : Date.now().toString();
+
+    document.body.appendChild(textarea);
+    textarea.focus();
+    activeTextInput = textarea;
+
+    const adjustSize = () => {
+      textarea.style.width = 'auto';
+      textarea.style.height = 'auto';
+      textarea.style.width = `${Math.max(60, textarea.scrollWidth + 10)}px`;
+      textarea.style.height = `${textarea.scrollHeight}px`;
+    };
+    
+    textarea.addEventListener('input', adjustSize);
+    adjustSize();
+
+    textarea.addEventListener('blur', () => commitTextInput());
+    textarea.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Enter' && !ev.shiftKey) {
+        ev.preventDefault();
+        textarea.blur();
+      }
+    });
+  }
 
   // ---- erasing ----------------------------------------------------------
   function startErase(e, mode){
