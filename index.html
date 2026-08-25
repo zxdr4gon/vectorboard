@@ -193,6 +193,11 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l2.5 2.5"/></svg>
     Reset
   </button>
+  <!-- clear canvas -->
+  <button class="icon-btn" id="clearCanvasBtn" title="Clear Canvas">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+    Clear
+  </button>
   <div class="divider"></div>
   <button class="icon-btn" id="exportPngBtn" title="Export PNG">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15v3a2 2 0 002 2h12a2 2 0 002-2v-3"/><path d="M7 10l5 5 5-5"/><path d="M12 15V4"/></svg>
@@ -289,6 +294,12 @@
 
   let history = [], future = [];
   let needsRender = true;
+
+  // load memory in browser
+  function loadLocalStrokes() {
+  const saved = localStorage.getItem('infinite-canvas-save');
+  if (saved) strokes = JSON.parse(saved);
+}
 
   // ---- small math helpers -------------------------------------------------
   function clamp(v, lo, hi){ return Math.min(hi, Math.max(lo, v)); }
@@ -775,6 +786,7 @@
     if (selectDrag || rubberBand) endSelect();
     try { canvas.releasePointerCapture(e.pointerId); } catch(err){}
     requestRenderNow();
+    localStorage.setItem('infinite-canvas-save', JSON.stringify(strokes)); // added for local memory
   }
   canvas.addEventListener('pointerup', onPointerEnd);
   canvas.addEventListener('pointercancel', onPointerEnd);
@@ -842,6 +854,16 @@
   document.getElementById('resetViewBtn').addEventListener('click', resetView);
   document.getElementById('undoBtn').addEventListener('click', undo);
   document.getElementById('redoBtn').addEventListener('click', redo);
+
+  // clear button script
+  document.getElementById('clearCanvasBtn').addEventListener('click', () => {
+    if (confirm('Are you sure you want to clear the entire canvas?')) {
+      strokes = [];
+      localStorage.removeItem('infinite-canvas-save');
+      requestRenderNow();
+      showToast('Canvas cleared');
+    }
+  });
 
   document.getElementById('helpBtn').addEventListener('click', e => { e.stopPropagation(); helpPop.classList.toggle('show'); });
   window.addEventListener('click', e => { if (!helpPop.contains(e.target) && e.target.id !== 'helpBtn') helpPop.classList.remove('show'); });
@@ -915,8 +937,10 @@
     showToast('SVG exported');
   });
 
+
   // ---- init ---------------------------------------------------------------
   function init(){
+    loadLocalStrokes();
     resize();
     camera.panX = window.innerWidth / 2;
     camera.panY = window.innerHeight / 2;
