@@ -513,13 +513,51 @@
 
   clearTimeout(snapTimer);
   snapTimer = setTimeout(() => {
-    if (currentStroke && currentStroke.points.length > 2) {
-      const start = currentStroke.points[0];
-      const end = currentStroke.points[currentStroke.points.length - 1];
-      currentStroke.points = [start, end]; 
-      requestRenderNow();
+    if (!currentStroke || currentStroke.points.length < 5) return;
+
+    const pts = currentStroke.points;
+    const start = pts[0];
+    const end = pts[pts.length - 1];
+
+    // Measure bounding box bounds
+    let minX = pts[0].x, maxX = pts[0].x, minY = pts[0].y, maxY = pts[0].y;
+    for (const p of pts) {
+      if (p.x < minX) minX = p.x;
+      if (p.x > maxX) maxX = p.x;
+      if (p.y < minY) minY = p.y;
+      if (p.y > maxY) maxY = p.y;
+    }
+
+    const width = maxX - minX;
+    const height = maxY - minY;
+    const bboxDiag = Math.hypot(width, height);
+    const endGap = Math.hypot(end.x - start.x, end.y - start.y);
+
+    // If start & end points meet within 45% of total size -> Snap Circle
+    if (endGap < bboxDiag * 0.45 && pts.length > 8) {
+      const centerX = minX + width / 2;
+      const centerY = minY + height / 2;
+      const radius = (width + height) / 4;
+      const circlePoints = [];
+      const numSegments = 40;
+
+      for (let i = 0; i <= numSegments; i++) {
+        const angle = (i / numSegments) * Math.PI * 2;
+        circlePoints.push({
+          x: centerX + radius * Math.cos(angle),
+          y: centerY + radius * Math.sin(angle),
+          p: start.p || 0.5
+        });
+      }
+      currentStroke.points = circlePoints;
+      showToast('Snapped to circle');
+    } else {
+      // Otherwise snap to straight line
+      currentStroke.points = [start, end];
       showToast('Snapped to line');
     }
+
+    requestRenderNow();
   }, 600);
 
   requestRenderNow();
@@ -651,6 +689,16 @@
     requestRenderNow();
   }
 
+  function getStrokeColor(color) {
+  if (!isDarkMode) return color;
+  const c = color.toLowerCase();
+  // Inverts black or near-black ink to white in dark mode
+  if (c === '#000000' || c === '#14151a' || c === '#121316' || c === 'black') {
+    return '#ffffff';
+  }
+  return color;
+}
+
   // ---- Dynamic Grid & Render ----
   function drawGrid(){
     const theme = getThemeColors();
@@ -689,7 +737,7 @@
   function drawStroke(targetCtx, stroke){
     const pts = stroke.points;
     if (!pts.length) return;
-    targetCtx.strokeStyle = stroke.color;
+    targetCtx.strokeStyle = getStrokeColor(stroke.color);
     targetCtx.fillStyle = stroke.color;
     targetCtx.lineCap = 'round';
     targetCtx.lineJoin = 'round';
