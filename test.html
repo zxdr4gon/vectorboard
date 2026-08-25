@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<title>Vector Sketch — Infinite Canvas Pro</title>
+<title>Vector Sketch — Infinite Canvas</title>
 <link rel="icon" type="image/png" href="https://img.icons8.com/3d-sugary/100/class-1.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -30,28 +30,41 @@
   html,body{margin:0;height:100%;overflow:hidden;background:var(--paper);font-family:var(--font-ui);}
   #c{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;}
 
-  html, body { transition: background 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-  body.dark-mode { --paper: #121316; }
+  html, body {
+    transition: background 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  body.dark-mode {
+    --paper: #121316;
+  }
 
   .panel{
-    position:fixed; display:flex; align-items:center; gap:5px;
+    position:fixed;
+    display:flex;
+    align-items:center;
+    gap:5px;
     background:linear-gradient(180deg, rgba(31,33,37,0.94), rgba(20,21,25,0.94));
-    backdrop-filter:blur(16px) saturate(150%); -webkit-backdrop-filter:blur(16px) saturate(150%);
-    border:1px solid rgba(255,255,255,0.07); border-radius:var(--radius-lg);
+    backdrop-filter:blur(16px) saturate(150%);
+    -webkit-backdrop-filter:blur(16px) saturate(150%);
+    border:1px solid rgba(255,255,255,0.07);
+    border-radius:var(--radius-lg);
     box-shadow:0 12px 34px rgba(0,0,0,0.30), 0 1px 0 rgba(255,255,255,0.05) inset;
-    padding:7px; z-index:10; user-select:none;
+    padding:7px;
+    z-index:10;
+    user-select:none;
   }
-  .panel-tools{ top:16px; left:50%; transform:translateX(-50%); flex-wrap:wrap; max-width:min(96vw, 1100px); justify-content:center; }
+  .panel-tools{ top:16px; left:50%; transform:translateX(-50%); flex-wrap:wrap; max-width:min(94vw, 940px); justify-content:center; }
   .panel-view{ top:16px; right:16px; }
 
   .divider{ width:1px; align-self:stretch; min-height:26px; background:rgba(255,255,255,0.09); margin:0 3px; }
 
-  button, select{ font-family:inherit; border:none; background:transparent; color:var(--ink-soft); cursor:pointer; }
-  button:focus-visible, input:focus-visible, select:focus-visible{ outline:2px solid var(--signal); outline-offset:2px; }
+  button{ font-family:inherit; border:none; background:transparent; color:var(--ink-soft); cursor:pointer; }
+  button:focus-visible, input:focus-visible{ outline:2px solid var(--signal); outline-offset:2px; }
 
   .tool-btn{
     width:36px; height:36px; display:flex; align-items:center; justify-content:center;
-    border-radius:var(--radius-sm); transition:background .15s ease, color .15s ease, transform .1s ease;
+    border-radius:var(--radius-sm);
+    transition:background .15s ease, color .15s ease, transform .1s ease;
     flex:0 0 auto;
   }
   .tool-btn svg{ width:18px; height:18px; }
@@ -60,179 +73,194 @@
   .tool-btn:active{ transform:scale(0.92); }
 
   .icon-btn{
-    height:36px; padding:0 10px; display:flex; align-items:center; gap:6px;
-    border-radius:var(--radius-sm); font-size:12px; font-weight:500; color:var(--ink-soft);
+    height:36px; padding:0 12px; display:flex; align-items:center; gap:6px;
+    border-radius:var(--radius-sm); font-size:12.5px; font-weight:500; letter-spacing:.01em; color:var(--ink-soft);
     transition:background .15s ease, color .15s ease; white-space:nowrap; flex:0 0 auto;
   }
   .icon-btn svg{ width:15px; height:15px; }
   .icon-btn:hover{ background:var(--graphite-700); color:#fff; }
+  .icon-btn:disabled{ opacity:.32; cursor:default; }
+  .icon-btn:disabled:hover{ background:transparent; color:var(--ink-soft); }
+  .icon-btn.primary{ background:var(--signal); color:#0A1512; font-weight:600; }
+  .icon-btn.primary:hover{ background:#57ecd4; color:#0A1512; }
   .icon-btn.square{ width:36px; padding:0; justify-content:center; }
 
-  .swatches{ display:flex; align-items:center; gap:5px; padding:0 2px; }
-  .swatch{ width:18px;height:18px;border-radius:50%; border:2px solid rgba(255,255,255,0.15); cursor:pointer; padding:0; transition:transform .12s ease; flex:0 0 auto; }
+  .swatches{ display:flex; align-items:center; gap:6px; padding:0 4px; }
+  .swatch{ width:20px;height:20px;border-radius:50%; border:2px solid rgba(255,255,255,0.15); cursor:pointer; padding:0; transition:transform .12s ease, border-color .12s ease; flex:0 0 auto; }
   .swatch:hover{ transform:scale(1.14); }
   .swatch.active{ border-color:var(--signal); box-shadow:0 0 0 2px rgba(53,224,198,0.28); }
-  #customColor{ width:22px;height:22px;border:none;border-radius:50%;background:none;padding:0;cursor:pointer;flex:0 0 auto; }
+  #customColor{ width:24px;height:24px;border:none;border-radius:50%;background:none;padding:0;cursor:pointer;flex:0 0 auto; }
+  #customColor::-webkit-color-swatch-wrapper{padding:0;border-radius:50%;}
+  #customColor::-webkit-color-swatch{border:2px solid rgba(255,255,255,0.15);border-radius:50%;}
+  #customColor::-moz-color-swatch{border:2px solid rgba(255,255,255,0.15);border-radius:50%;}
 
-  .size-group{ display:flex; align-items:center; gap:6px; padding:0 4px; }
-  .size-group label{ font-size:10px; color:var(--ink-mute); font-family:var(--font-mono); text-transform:uppercase; }
-  .size-group input[type=range]{ -webkit-appearance:none; appearance:none; width:60px; height:4px; border-radius:2px; background:var(--graphite-600); outline:none; }
-  .size-group input[type=range]::-webkit-slider-thumb{ -webkit-appearance:none; width:12px;height:12px;border-radius:50%; background:var(--signal); cursor:pointer; }
+  .size-group{ display:flex; align-items:center; gap:8px; padding:0 8px; }
+  .size-group label{ font-size:10.5px; color:var(--ink-mute); font-family:var(--font-mono); min-width:64px; text-transform:uppercase; letter-spacing:.05em; }
+  .size-group input[type=range]{ -webkit-appearance:none; appearance:none; width:84px; height:4px; border-radius:2px; background:var(--graphite-600); outline:none; }
+  .size-group input[type=range]::-webkit-slider-thumb{ -webkit-appearance:none; width:14px;height:14px;border-radius:50%; background:var(--signal); cursor:pointer; border:2px solid #0F1113; margin-top:-5px; }
+  .size-group input[type=range]::-moz-range-thumb{ width:14px;height:14px;border-radius:50%; background:var(--signal); border:2px solid #0F1113; cursor:pointer; }
+  .size-group input[type=range]::-moz-range-track{ height:4px; border-radius:2px; background:var(--graphite-600); }
   .size-value{ font-family:var(--font-mono); font-size:11px; color:var(--ink-soft); min-width:20px; text-align:right; }
 
   .readout{
     position:fixed; left:16px; bottom:16px; z-index:10;
     font-family:var(--font-mono); font-size:11px; letter-spacing:.03em; color:var(--ink-mute);
-    background:rgba(20,21,25,0.88); backdrop-filter:blur(10px);
+    background:rgba(20,21,25,0.88); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
     border:1px solid rgba(255,255,255,0.07); border-radius:var(--radius-md);
     padding:9px 13px; display:flex; flex-direction:column; gap:3px; min-width:150px;
   }
-  .readout .brand{ color:var(--signal); font-family:var(--font-ui); font-weight:600; font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; }
+  .readout .brand{ color:var(--signal); font-family:var(--font-ui); font-weight:600; font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; margin-bottom:2px; }
   .readout .row{ display:flex; justify-content:space-between; gap:14px; }
   .readout .row b{ color:var(--ink-soft); font-weight:500; }
 
-  /* Minimap UI */
-  #minimapContainer{
-    position:fixed; right:16px; bottom:16px; z-index:10;
-    width:160px; height:110px; background:rgba(20,21,25,0.92);
-    border:1px solid rgba(255,255,255,0.1); border-radius:var(--radius-md);
-    overflow:hidden; box-shadow:0 8px 24px rgba(0,0,0,0.4); cursor:pointer;
-  }
-  #minimap{ width:100%; height:100%; display:block; }
-
-  /* Inline Text Editor Overlay */
-  #textEditor{
-    position:fixed; display:none; z-index:30; background:transparent; border:1px dashed var(--signal);
-    color:var(--graphite-900); font-family:var(--font-ui); outline:none; resize:none; overflow:hidden;
-    padding:0; margin:0; line-height:1.2; white-space:pre;
-  }
-
   .help-pop{
-    position:fixed; top:60px; right:16px; z-index:11; background:rgba(20,21,25,0.96); backdrop-filter:blur(14px);
-    border:1px solid rgba(255,255,255,0.08); border-radius:var(--radius-md); padding:14px 16px; width:280px;
-    font-size:11.5px; color:var(--ink-soft); opacity:0; transform:translateY(-6px); pointer-events:none; transition:all .15s ease;
+    position:fixed; top:60px; right:16px; z-index:11;
+    background:rgba(20,21,25,0.96); backdrop-filter:blur(14px);
+    border:1px solid rgba(255,255,255,0.08); border-radius:var(--radius-md);
+    padding:14px 16px; width:250px; font-size:11.5px; color:var(--ink-soft);
+    box-shadow:0 14px 36px rgba(0,0,0,.35);
+    opacity:0; transform:translateY(-6px); pointer-events:none; transition:opacity .15s ease, transform .15s ease;
   }
   .help-pop.show{ opacity:1; transform:translateY(0); pointer-events:auto; }
-  .help-title{ font-weight:600; color:#fff; font-size:12.5px; margin-bottom:8px; }
+  .help-pop .help-title{ font-family:var(--font-ui); font-weight:600; color:#fff; font-size:12.5px; margin-bottom:8px; letter-spacing:.02em; }
   .help-row{ display:flex; justify-content:space-between; gap:10px; padding:3px 0; border-top:1px solid rgba(255,255,255,0.05); }
-  .help-row span:first-child{ font-family:var(--font-mono); color:var(--signal); }
+  .help-row:first-of-type{ border-top:none; }
+  .help-row span:first-child{ font-family:var(--font-mono); color:var(--signal); font-size:10.5px; white-space:nowrap; }
+  .help-row span:last-child{ text-align:right; color:var(--ink-mute); }
 
   .toast{
     position:fixed; left:50%; bottom:26px; transform:translateX(-50%) translateY(12px);
-    background:rgba(20,21,25,0.94); color:#fff; font-size:12.5px; padding:8px 16px; border-radius:999px;
-    border:1px solid rgba(255,255,255,0.08); opacity:0; pointer-events:none; transition:all .2s ease; z-index:20;
+    background:rgba(20,21,25,0.94); color:#fff; font-size:12.5px; font-family:var(--font-ui);
+    padding:9px 18px; border-radius:999px; border:1px solid rgba(255,255,255,0.08);
+    opacity:0; pointer-events:none; transition:opacity .2s ease, transform .2s ease; z-index:20;
+    box-shadow:0 10px 26px rgba(0,0,0,.32);
   }
   .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
 
-  .panel.collapsed > *:not(.toggle-btn) { display: none !important; }
-  .toggle-btn { color: var(--signal); }
-
-  select.export-select {
-    background: var(--graphite-800); color: var(--ink-soft); border: 1px solid rgba(255,255,255,0.1);
-    border-radius: var(--radius-sm); padding: 4px 6px; font-size: 11px;
+  /* Minimize Panel Logic */
+  .panel.collapsed > *:not(.toggle-btn) {
+    display: none !important;
+  }
+  .toggle-btn {
+    color: var(--signal); 
+  }
+  
+  @media (max-width:720px){
+    .size-group label{ display:none; }
+    .size-group input[type=range]{ width:56px; }
+    .readout{ min-width:0; }
+    .help-pop{ right:16px; left:16px; width:auto; }
   }
 </style>
 </head>
 <body>
 
 <canvas id="c"></canvas>
-<textarea id="textEditor"></textarea>
 
-<!-- Tools Panel -->
+<!-- Tools + brush panel -->
 <div class="panel panel-tools" id="toolPanel">
   <button class="icon-btn square toggle-btn" title="Toggle Menu">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 14 12 6 20 14"></polyline></svg>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 12 6 20 14"></polyline></svg>
   </button>
   
-  <button class="tool-btn active" data-tool="pen" title="Pen (P)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20l1-5L15.5 4.5l4 4L9 19l-5 1z"/><path d="M13.5 6.5l4 4"/></svg></button>
-  <button class="tool-btn" data-tool="highlighter" title="Highlighter (G)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M15.5 3.5l5 5L8 21H3v-5L15.5 3.5z"/><line x1="14" y1="5" x2="19" y2="10"/></svg></button>
-  <button class="tool-btn" data-tool="text" title="Text Tool (T)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="4 7 4 4 20 4 20 7"/><line x1="12" y1="4" x2="12" y2="20"/><line x1="9" y1="20" x2="15" y2="20"/></svg></button>
-  <button class="tool-btn" data-tool="eraser-stroke" title="Stroke Eraser (E)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="4" y1="19" x2="19" y2="4"/><line x1="7" y1="6" x2="18" y2="17"/></svg></button>
-  <button class="tool-btn" data-tool="eraser-precision" title="Precision Eraser (X)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="8.5" y="8" width="7" height="8" rx="2"/><line x1="3" y1="12" x2="8.5" y2="12"/></svg></button>
-  <button class="tool-btn" data-tool="hand" title="Hand / Pan (H)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="6" y="10.5" width="12" height="8.5" rx="3"/><line x1="9" y1="10.5" x2="9" y2="5"/><line x1="12" y1="10.5" x2="12" y2="4"/></svg></button>
-  <button class="tool-btn" data-tool="select" title="Select & Transform (V)"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 3l7.5 17.5 2-7.3 7.3-2z"/></svg></button>
+  <button class="tool-btn" data-tool="pen" title="Pen (P)" aria-label="Pen">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l1-5L15.5 4.5l4 4L9 19l-5 1z"/><path d="M13.5 6.5l4 4"/></svg>
+  </button>
+  <button class="tool-btn" data-tool="eraser-stroke" title="Stroke Eraser — deletes whole strokes (E)" aria-label="Stroke Eraser">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="19" x2="19" y2="4"/><line x1="7" y1="6" x2="18" y2="17"/><line x1="18" y1="6" x2="7" y2="17"/></svg>
+  </button>
+  <button class="tool-btn" data-tool="eraser-precision" title="Precision Eraser — cuts through paths (X)" aria-label="Precision Eraser">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="8.5" y2="12"/><line x1="15.5" y1="12" x2="21" y2="12"/><rect x="8.5" y="8" width="7" height="8" rx="2"/></svg>
+  </button>
+  <button class="tool-btn" data-tool="hand" title="Hand / Pan (H)" aria-label="Hand tool">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="10.5" width="12" height="8.5" rx="3"/><line x1="9" y1="10.5" x2="9" y2="5"/><line x1="12" y1="10.5" x2="12" y2="4"/><line x1="15" y1="10.5" x2="15" y2="5.5"/></svg>
+  </button>
+  <button class="tool-btn" data-tool="select" title="Select (V)" aria-label="Select tool">
+    <svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M4 3l7.5 17.5 2-7.3 7.3-2z"/></svg>
+  </button>
 
   <div class="divider"></div>
 
-  <!-- Formatting Controls -->
   <div class="swatches" id="swatches">
-    <button class="swatch active" data-color="#14151A" style="background:#14151A"></button>
-    <button class="swatch" data-color="#3D5CFF" style="background:#3D5CFF"></button>
-    <button class="swatch" data-color="#35E0C6" style="background:#35E0C6"></button>
-    <button class="swatch" data-color="#FF5C5C" style="background:#FF5C5C"></button>
-    <button class="swatch" data-color="#FFB020" style="background:#FFB020"></button>
-    <input type="color" id="customColor" value="#14151A" title="Custom Color">
+    <button class="swatch" data-color="#14151A" style="background:#14151A" title="Ink"></button>
+    <button class="swatch" data-color="#3D5CFF" style="background:#3D5CFF" title="Indigo"></button>
+    <button class="swatch" data-color="#35E0C6" style="background:#35E0C6" title="Signal"></button>
+    <button class="swatch" data-color="#FF5C5C" style="background:#FF5C5C" title="Red"></button>
+    <button class="swatch" data-color="#FFB020" style="background:#FFB020" title="Amber"></button>
+    <input type="color" id="customColor" value="#14151A" title="Custom color">
   </div>
 
-  <div class="size-group">
-    <label id="opacityLabel">Alpha</label>
-    <input type="range" id="opacitySlider" min="0.1" max="1" step="0.05" value="1">
-  </div>
+  <div class="divider"></div>
 
   <div class="size-group">
-    <label id="sizeLabel">Size</label>
-    <input type="range" id="sizeSlider" min="1" max="80" value="6" step="1">
+    <label id="sizeLabel">Brush size</label>
+    <input type="range" id="sizeSlider" min="1" max="60" value="6" step="1">
     <span class="size-value" id="sizeValue">6</span>
   </div>
 
   <div class="divider"></div>
 
-  <!-- Smart Features Toggles -->
-  <button class="tool-btn" id="snapBtn" title="Toggle Grid Snap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg></button>
-  <button class="tool-btn" id="smoothBtn" title="Toggle Bézier Smoothing (Active)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 17c4 0 5-10 9-10s5 10 9 10"/></svg></button>
-
-  <div class="divider"></div>
-
-  <button class="icon-btn square" id="groupBtn" title="Group (Ctrl+G)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></button>
-  <button class="icon-btn square" id="frontBtn" title="Bring to Front (])"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="17 11 12 6 7 11"/><line x1="12" y1="6" x2="12" y2="18"/></svg></button>
-  <button class="icon-btn square" id="backBtn" title="Send to Back ([)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="17 13 12 18 7 13"/><line x1="12" y1="18" x2="12" y2="6"/></svg></button>
-
-  <div class="divider"></div>
-
-  <button class="icon-btn square" id="undoBtn" title="Undo (Ctrl+Z)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 7L4 12l5 5"/><path d="M4 12h11a5 5 0 010 10h-1"/></svg></button>
-  <button class="icon-btn square" id="redoBtn" title="Redo (Ctrl+Y)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M15 7l5 5-5 5"/><path d="M20 12H9A5 5 0 009 22h1"/></svg></button>
+  <button class="icon-btn square" id="undoBtn" title="Undo (Ctrl+Z)" aria-label="Undo">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 7L4 12l5 5"/><path d="M4 12h11a5 5 0 010 10h-1"/></svg>
+  </button>
+  <button class="icon-btn square" id="redoBtn" title="Redo (Ctrl+Shift+Z)" aria-label="Redo">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 7l5 5-5 5"/><path d="M20 12H9A5 5 0 009 22h1"/></svg>
+  </button>
 </div>
 
-<!-- View Panel -->
+<!-- View + export panel -->
 <div class="panel panel-view collapsed" id="viewPanel">
-  <button class="icon-btn square toggle-btn" title="Toggle Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 10 12 18 20 10"></polyline></svg></button>
-  <button class="icon-btn" id="resetViewBtn">Reset</button>
-  <button class="icon-btn square" id="themeBtn" title="Toggle Theme"><svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg></button>
-  <button class="icon-btn" id="clearCanvasBtn">Clear</button>
-  <button class="icon-btn" id="saveFileBtn">Save</button>
-  <button class="icon-btn" id="loadFileBtn">Open</button>
+  <button class="icon-btn square toggle-btn" title="Toggle Menu">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 10 12 18 20 10"></polyline></svg>
+  </button>
+  
+  <button class="icon-btn" id="resetViewBtn" title="Reset view (0)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l2.5 2.5"/></svg>
+    Reset
+  </button>
+  <button class="icon-btn square" id="themeBtn" title="Toggle Dark/Light Mode" aria-label="Toggle Theme">
+    <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+    </svg>
+  </button>
+  <!-- clear canvas -->
+  <button class="icon-btn" id="clearCanvasBtn" title="Clear Canvas">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+    Clear
+  </button>
+  <button class="icon-btn" id="saveFileBtn" title="Save to File">Save File</button>
+  <button class="icon-btn" id="loadFileBtn" title="Open File">Open File</button>
   <input type="file" id="fileInput" style="display:none" accept=".json">
   <div class="divider"></div>
-  
-  <select id="exportScope" class="export-select">
-    <option value="all">All Content</option>
-    <option value="viewport">Viewport View</option>
-    <option value="selected">Selected Only</option>
-  </select>
-  <button class="icon-btn" id="exportPngBtn">PNG</button>
-  <button class="icon-btn" id="exportSvgBtn">SVG</button>
+  <button class="icon-btn" id="exportPngBtn" title="Export PNG">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15v3a2 2 0 002 2h12a2 2 0 002-2v-3"/><path d="M7 10l5 5 5-5"/><path d="M12 15V4"/></svg>
+    PNG
+  </button>
+  <button class="icon-btn" id="exportSvgBtn" title="Export SVG">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15v3a2 2 0 002 2h12a2 2 0 002-2v-3"/><path d="M7 10l5 5 5-5"/><path d="M12 15V4"/></svg>
+    SVG
+  </button>
   <div class="divider"></div>
-  <button class="icon-btn square" id="helpBtn">?</button>
-</div>
-
-<!-- Minimap UI -->
-<div id="minimapContainer" title="Click to navigate">
-  <canvas id="minimap"></canvas>
+  <button class="icon-btn square" id="helpBtn" title="Keyboard shortcuts" aria-label="Shortcuts">?</button>
 </div>
 
 <div class="help-pop" id="helpPop">
   <div class="help-title">Shortcuts</div>
-  <div class="help-row"><span>P / G / T</span><span>Pen / Highlighter / Text</span></div>
-  <div class="help-row"><span>E / X / V</span><span>Erasers / Select</span></div>
-  <div class="help-row"><span>Ctrl+C / Ctrl+V</span><span>Copy / Paste</span></div>
-  <div class="help-row"><span>Ctrl+G</span><span>Group / Ungroup</span></div>
-  <div class="help-row"><span>Shift + 1..5</span><span>Save Bookmark 1..5</span></div>
-  <div class="help-row"><span>1..5</span><span>Recall Bookmark 1..5</span></div>
-  <div class="help-row"><span>Drag & Drop / Paste</span><span>Import Image</span></div>
+  <div class="help-row"><span>P</span><span>Pen</span></div>
+  <div class="help-row"><span>E</span><span>Stroke eraser</span></div>
+  <div class="help-row"><span>X</span><span>Precision eraser</span></div>
+  <div class="help-row"><span>H</span><span>Hand / pan</span></div>
+  <div class="help-row"><span>V</span><span>Select</span></div>
+  <div class="help-row"><span>Space (hold)</span><span>Pan</span></div>
+  <div class="help-row"><span>Mid-click / Shift-drag</span><span>Pan</span></div>
+  <div class="help-row"><span>Scroll / Pinch</span><span>Zoom</span></div>
+  <div class="help-row"><span>0</span><span>Reset view</span></div>
+  <div class="help-row"><span>Del</span><span>Delete selection</span></div>
+  <div class="help-row"><span>Ctrl+Z / ⇧Z</span><span>Undo / Redo</span></div>
 </div>
 
 <div class="readout" id="readoutPanel">
-  <div class="brand">Infinite Vector Canvas</div>
+  <div class="brand">Infinite canvas</div>
   <div class="row"><span>Zoom</span><b id="zoomReadout">100%</b></div>
   <div class="row"><span>Cursor</span><b id="coordReadout">X 0  Y 0</b></div>
 </div>
@@ -243,81 +271,121 @@
 (function(){
   'use strict';
 
-  // ---- DOM Setup -----------------------------------------------------------
+  /* =========================================================================
+     VECTOR SKETCH — INFINITE CANVAS PROTOTYPE
+     -------------------------------------------------------------------------
+     Data model: every stroke is stored as resolution-agnostic world-space
+     data — an array of {x, y, p} points (p = normalized pressure 0..1) plus
+     a color and a base width. Nothing is ever rasterized into the source of
+     truth: the canvas is cleared and fully re-drawn from this vector data
+     every frame, through a camera transform matrix. That's what keeps lines
+     razor-sharp at any zoom level, and it's also what makes PNG/SVG export
+     trivial — export just replays the same data through a different matrix.
+     ========================================================================= */
+
+  // ---- DOM ----------------------------------------------------------------
   const canvas = document.getElementById('c');
   const ctx = canvas.getContext('2d');
-  const minimapCanvas = document.getElementById('minimap');
-  const minimapCtx = minimapCanvas.getContext('2d');
-  const textEditor = document.getElementById('textEditor');
   let dpr = window.devicePixelRatio || 1;
 
   const sizeSlider = document.getElementById('sizeSlider');
   const sizeValue  = document.getElementById('sizeValue');
-  const opacitySlider = document.getElementById('opacitySlider');
+  const sizeLabel  = document.getElementById('sizeLabel');
   const zoomReadout  = document.getElementById('zoomReadout');
   const coordReadout = document.getElementById('coordReadout');
   const toastEl = document.getElementById('toast');
   const helpPop = document.getElementById('helpPop');
 
+  // ---- constants ------------------------------------------------------------
   const MIN_ZOOM = 0.05, MAX_ZOOM = 40, HISTORY_LIMIT = 60;
+  const PAPER_COLOR = '#E9EAEE';
 
-  // ---- Application State ---------------------------------------------------
+  // ---- app state --------------------------------------------------------
   const state = {
-    tool: 'pen',            // 'pen'|'highlighter'|'text'|'eraser-stroke'|'eraser-precision'|'hand'|'select'
+    tool: 'pen',            // 'pen' | 'eraser-stroke' | 'eraser-precision' | 'hand' | 'select'
     color: '#14151A',
-    opacity: 1,
-    baseWidth: 6,
-    fontSize: 24,
-    eraserRadius: 22,
-    snapToGrid: false,
-    bezierSmooth: true,
+    baseWidth: 6,            // world units — pen brush diameter at full pressure
+    eraserRadius: 22,        // SCREEN pixels — kept constant on screen regardless of zoom
   };
 
-  const camera = { panX: 0, panY: 0, zoom: 1 };
-  const bookmarks = {};      // Key 1-5 spatial positions
+  const camera = { panX: 0, panY: 0, zoom: 1 }; // world->screen: s = w*zoom + pan
 
-  let strokes = [];          // Master vector elements array
+  let snapTimer = null;
+  let strokes = [];          // the entire drawing, in world space
   let nextId = 1;
   const selectedIds = new Set();
-  let clipboard = [];
 
-  // Interaction variables
-  const activePointers = new Map();
-  let panState = null, currentStroke = null, lastDrawPoint = null;
-  let erasing = null, selectDrag = null, rubberBand = null, transformHandle = null;
-  let activeEditingText = null;
-  let pinch = null, spaceDown = false, lastPointerScreen = null;
-  let activeGuideLines = []; // [{x1,y1,x2,y2}] for smart snapping visualization
+  // interaction state
+  const activePointers = new Map(); // pointerId -> {x,y} in screen space
+  let panState = null;
+  let currentStroke = null, lastDrawPoint = null;
+  let erasing = null;         // { mode: 'stroke' | 'precision' }
+  let selectDrag = null;      // { lastWorld, historyPushed }
+  let rubberBand = null;      // { startWorld, curWorld }
+  let pinch = null;
+  let spaceDown = false;
+  let lastPointerScreen = null;
 
   let history = [], future = [];
   let needsRender = true;
-  let isDarkMode = localStorage.getItem('canvas-theme') === 'dark';
 
-  // ---- Helper Math & Spatial Functions -------------------------------------
+  // load memory in browser
+  function loadLocalStrokes() {
+  const saved = localStorage.getItem('infinite-canvas-save');
+  if (saved) strokes = JSON.parse(saved);
+}
+
+  // ---- small math helpers -------------------------------------------------
   function clamp(v, lo, hi){ return Math.min(hi, Math.max(lo, v)); }
   function dist(a, b){ return Math.hypot(a.x - b.x, a.y - b.y); }
+  function distToSegment(p, a, b){
+    const dx = b.x - a.x, dy = b.y - a.y;
+    const lenSq = dx*dx + dy*dy;
+    if (lenSq === 0) return Math.hypot(p.x - a.x, p.y - a.y);
+    let t = ((p.x - a.x)*dx + (p.y - a.y)*dy) / lenSq;
+    t = clamp(t, 0, 1);
+    return Math.hypot(p.x - (a.x + t*dx), p.y - (a.y + t*dy));
+  }
+  function normalizeRect(a, b){
+    return { minX: Math.min(a.x,b.x), minY: Math.min(a.y,b.y), maxX: Math.max(a.x,b.x), maxY: Math.max(a.y,b.y) };
+  }
+  function getEvents(e){
+    if (typeof e.getCoalescedEvents === 'function'){
+      const list = e.getCoalescedEvents();
+      if (list && list.length) return list;
+    }
+    return [e];
+  }
 
+  // ---- camera transform ----------------------------------------------------
   function screenToWorld(sx, sy){
     return { x: (sx - camera.panX) / camera.zoom, y: (sy - camera.panY) / camera.zoom };
   }
   function worldToScreen(wx, wy){
     return { x: wx*camera.zoom + camera.panX, y: wy*camera.zoom + camera.panY };
   }
+  function zoomAt(sx, sy, factor){
+    const before = screenToWorld(sx, sy);
+    camera.zoom = clamp(camera.zoom * factor, MIN_ZOOM, MAX_ZOOM);
+    camera.panX = sx - before.x * camera.zoom;
+    camera.panY = sy - before.y * camera.zoom;
+    requestRenderNow();
+  }
+  function resetView(){
+    camera.zoom = 1;
+    camera.panX = window.innerWidth / 2;
+    camera.panY = window.innerHeight / 2;
+    requestRenderNow();
+  }
 
-  // ---- Element Bounding Box Math ------------------------------------------
-  function getElementBBox(el){
-    if (el.type === 'text') {
-      const w = el.width || (el.text.length * el.fontSize * 0.6);
-      const h = el.height || (el.fontSize * 1.2);
-      return { minX: el.x, minY: el.y, maxX: el.x + w, maxY: el.y + h };
-    }
-    if (el.type === 'image') {
-      return { minX: el.x, minY: el.y, maxX: el.x + el.width, maxY: el.y + el.height };
-    }
-    // Default stroke BBox calculation
+  // ---- stroke geometry helpers ---------------------------------------------
+  function pressureToWidth(stroke, p){
+    return Math.max(0.75, stroke.baseWidth * (0.3 + p * 1.4));
+  }
+  function getStrokeBBox(stroke){
     let minX=Infinity, minY=Infinity, maxX=-Infinity, maxY=-Infinity;
-    for (const pt of el.points){
-      const hw = (el.baseWidth * (0.3 + (pt.p||0.5) * 1.4)) / 2;
+    for (const pt of stroke.points){
+      const hw = pressureToWidth(stroke, pt.p) / 2;
       if (pt.x-hw < minX) minX = pt.x-hw;
       if (pt.x+hw > maxX) maxX = pt.x+hw;
       if (pt.y-hw < minY) minY = pt.y-hw;
@@ -325,161 +393,415 @@
     }
     return { minX, minY, maxX, maxY };
   }
-
-  function getCombinedBBox(elementList){
-    if (!elementList.length) return { minX: 0, minY: 0, maxX: 0, maxY: 0 };
+  function computeStrokesBBox(list){
     let minX=Infinity, minY=Infinity, maxX=-Infinity, maxY=-Infinity;
-    for (const el of elementList){
-      const b = getElementBBox(el);
+    for (const s of list){
+      const b = getStrokeBBox(s);
       minX = Math.min(minX, b.minX); minY = Math.min(minY, b.minY);
       maxX = Math.max(maxX, b.maxX); maxY = Math.max(maxY, b.maxY);
     }
     return { minX, minY, maxX, maxY };
   }
-
-  // ---- Catmull-Rom Spline Path Generator -----------------------------------
-  function drawCatmullRomStroke(targetCtx, stroke) {
+  function strokeIntersectsRect(stroke, rect){
+    const b = getStrokeBBox(stroke);
+    return !(b.maxX < rect.minX || b.minX > rect.maxX || b.maxY < rect.minY || b.minY > rect.maxY);
+  }
+  function strokeHitByCircle(stroke, center, r){
     const pts = stroke.points;
-    if (pts.length < 3) {
-      targetCtx.beginPath();
-      targetCtx.moveTo(pts[0].x, pts[0].y);
-      for (let i = 1; i < pts.length; i++) targetCtx.lineTo(pts[i].x, pts[i].y);
-      targetCtx.stroke();
-      return;
+    if (pts.length === 1){
+      return dist(pts[0], center) <= r + pressureToWidth(stroke, pts[0].p)/2;
     }
-    targetCtx.beginPath();
-    targetCtx.moveTo(pts[0].x, pts[0].y);
-    for (let i = 0; i < pts.length - 1; i++) {
-      const p0 = pts[i === 0 ? i : i - 1];
-      const p1 = pts[i];
-      const p2 = pts[i + 1];
-      const p3 = pts[i + 2 < pts.length ? i + 2 : i + 1];
-
-      const cp1x = p1.x + (p2.x - p0.x) / 6;
-      const cp1y = p1.y + (p2.y - p0.y) / 6;
-      const cp2x = p2.x - (p3.x - p1.x) / 6;
-      const cp2y = p2.y - (p3.y - p1.y) / 6;
-
-      targetCtx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, p2.x, p2.y);
+    for (let i=0; i<pts.length-1; i++){
+      const halfw = Math.max(pressureToWidth(stroke, pts[i].p), pressureToWidth(stroke, pts[i+1].p)) / 2;
+      if (distToSegment(center, pts[i], pts[i+1]) <= r + halfw) return true;
     }
-    targetCtx.stroke();
+    return false;
+  }
+  function hitTestStroke(p){
+    for (let i = strokes.length-1; i >= 0; i--){
+      if (strokeHitByCircle(strokes[i], p, 6/camera.zoom)) return strokes[i];
+    }
+    return null;
   }
 
-  // ---- Rendering Engine ---------------------------------------------------
+  // Precision eraser: true vector path-splitting. Points inside the eraser
+  // circle (or segments passing through it) are removed; the remaining
+  // contiguous runs become brand new strokes. No compositing tricks — the
+  // underlying path data is genuinely cut, so it exports perfectly too.
+  function makeSubStroke(orig, pts){
+    return { id: nextId++, color: orig.color, baseWidth: orig.baseWidth, points: pts.slice() };
+  }
+  function splitStrokeByEraser(stroke, center, r){
+    if (!strokeHitByCircle(stroke, center, r)) return [stroke];
+    const pts = stroke.points;
+    const n = pts.length;
+    const erased = new Array(n).fill(false);
+    for (let i=0; i<n; i++){
+      const halfw = pressureToWidth(stroke, pts[i].p) / 2;
+      if (dist(pts[i], center) <= r + halfw) erased[i] = true;
+    }
+    for (let i=0; i<n-1; i++){
+      if (erased[i] && erased[i+1]) continue;
+      const halfw = Math.max(pressureToWidth(stroke, pts[i].p), pressureToWidth(stroke, pts[i+1].p)) / 2;
+      if (distToSegment(center, pts[i], pts[i+1]) <= r + halfw){ erased[i] = true; erased[i+1] = true; }
+    }
+    const result = [];
+    let run = [];
+    for (let i=0; i<n; i++){
+      if (!erased[i]) run.push(pts[i]);
+      else { if (run.length) { result.push(makeSubStroke(stroke, run)); run = []; } }
+    }
+    if (run.length) result.push(makeSubStroke(stroke, run));
+    return result;
+  }
+  function applyEraseAt(center, mode){
+    const r = state.eraserRadius / camera.zoom;
+    if (mode === 'stroke'){
+      strokes = strokes.filter(s => !strokeHitByCircle(s, center, r));
+    } else {
+      const next = [];
+      for (const s of strokes) { for (const part of splitStrokeByEraser(s, center, r)) next.push(part); }
+      strokes = next;
+    }
+  }
+
+  // ---- history (undo/redo) -------------------------------------------------
+  function snapshot(){
+    return strokes.map(s => ({ id: s.id, color: s.color, baseWidth: s.baseWidth, points: s.points.map(p => ({x:p.x,y:p.y,p:p.p})) }));
+  }
+  function pushHistory(){
+    history.push(snapshot());
+    if (history.length > HISTORY_LIMIT) history.shift();
+    future = [];
+  }
+  function undo(){
+    if (!history.length) return;
+    future.push(snapshot());
+    strokes = history.pop();
+    selectedIds.clear();
+    requestRenderNow();
+  }
+  function redo(){
+    if (!future.length) return;
+    history.push(snapshot());
+    strokes = future.pop();
+    selectedIds.clear();
+    requestRenderNow();
+  }
+
+  // ---- drawing (pen) --------------------------------------------------------
+  function normalizedPressure(e){
+    if (e.pointerType === 'pen' && e.pressure > 0) return e.pressure;
+    return 0.5; // mouse / touch / unsupported hardware
+  }
+  function startStroke(e){
+    pushHistory();
+    const p = screenToWorld(e.clientX, e.clientY);
+    currentStroke = { id: nextId++, color: state.color, baseWidth: state.baseWidth, points: [{x:p.x,y:p.y,p:normalizedPressure(e)}] };
+    strokes.push(currentStroke);
+    lastDrawPoint = p;
+    requestRenderNow();
+  }
+  function moveStroke(e){
+  const minDist = 1.2 / camera.zoom; 
+  for (const ev of getEvents(e)){
+    const p = screenToWorld(ev.clientX, ev.clientY);
+    if (Math.hypot(p.x-lastDrawPoint.x, p.y-lastDrawPoint.y) < minDist) continue;
+    currentStroke.points.push({ x:p.x, y:p.y, p:normalizedPressure(ev) });
+    lastDrawPoint = p;
+  }
+
+  clearTimeout(snapTimer);
+  snapTimer = setTimeout(() => {
+    if (!currentStroke || currentStroke.points.length < 5) return;
+
+    const pts = currentStroke.points;
+    const start = pts[0];
+    const end = pts[pts.length - 1];
+
+    // Measure bounding box bounds
+    let minX = pts[0].x, maxX = pts[0].x, minY = pts[0].y, maxY = pts[0].y;
+    for (const p of pts) {
+      if (p.x < minX) minX = p.x;
+      if (p.x > maxX) maxX = p.x;
+      if (p.y < minY) minY = p.y;
+      if (p.y > maxY) maxY = p.y;
+    }
+
+    const width = maxX - minX;
+    const height = maxY - minY;
+    const bboxDiag = Math.hypot(width, height);
+    const endGap = Math.hypot(end.x - start.x, end.y - start.y);
+
+    // If start & end points meet within 45% of total size -> Snap Circle
+    if (endGap < bboxDiag * 0.45 && pts.length > 8) {
+      const centerX = minX + width / 2;
+      const centerY = minY + height / 2;
+      const radius = (width + height) / 4;
+      const circlePoints = [];
+      const numSegments = 40;
+
+      for (let i = 0; i <= numSegments; i++) {
+        const angle = (i / numSegments) * Math.PI * 2;
+        circlePoints.push({
+          x: centerX + radius * Math.cos(angle),
+          y: centerY + radius * Math.sin(angle),
+          p: start.p || 0.5
+        });
+      }
+      currentStroke.points = circlePoints;
+      showToast('Snapped to circle');
+    } else {
+      // Otherwise snap to straight line
+      currentStroke.points = [start, end];
+      showToast('Snapped to line');
+    }
+
+    requestRenderNow();
+  }, 600);
+
+  requestRenderNow();
+}
+  function endStroke(){ 
+  clearTimeout(snapTimer);
+  currentStroke = null; 
+  lastDrawPoint = null; 
+}
+
+  // ---- erasing ----------------------------------------------------------
+  function startErase(e, mode){
+    pushHistory();
+    erasing = { mode };
+    applyEraseAt(screenToWorld(e.clientX, e.clientY), mode);
+    requestRenderNow();
+  }
+  function moveErase(e){
+    for (const ev of getEvents(e)) applyEraseAt(screenToWorld(ev.clientX, ev.clientY), erasing.mode);
+    requestRenderNow();
+  }
+  function endErase(){ erasing = null; }
+
+  // ---- select tool --------------------------------------------------------
+  function startSelect(e){
+    const p = screenToWorld(e.clientX, e.clientY);
+    const hit = hitTestStroke(p);
+    if (hit){
+      if (!e.shiftKey && !selectedIds.has(hit.id)) selectedIds.clear();
+      selectedIds.add(hit.id);
+      selectDrag = { lastWorld: p, historyPushed: false };
+    } else {
+      if (!e.shiftKey) selectedIds.clear();
+      rubberBand = { startWorld: p, curWorld: p };
+    }
+    requestRenderNow();
+  }
+  function moveSelect(e){
+    const p = screenToWorld(e.clientX, e.clientY);
+    if (selectDrag){
+      const dx = p.x - selectDrag.lastWorld.x, dy = p.y - selectDrag.lastWorld.y;
+      if (dx !== 0 || dy !== 0){
+        if (!selectDrag.historyPushed){ pushHistory(); selectDrag.historyPushed = true; }
+        for (const s of strokes) if (selectedIds.has(s.id)) for (const pt of s.points){ pt.x += dx; pt.y += dy; }
+      }
+      selectDrag.lastWorld = p;
+    } else if (rubberBand){
+      rubberBand.curWorld = p;
+      const rect = normalizeRect(rubberBand.startWorld, rubberBand.curWorld);
+      selectedIds.clear();
+      for (const s of strokes) if (strokeIntersectsRect(s, rect)) selectedIds.add(s.id);
+    }
+    requestRenderNow();
+  }
+  function endSelect(){ selectDrag = null; rubberBand = null; requestRenderNow(); }
+
+  // ---- panning ------------------------------------------------------------
+  function startPan(e){
+    panState = { pointerId: e.pointerId, startScreenX: e.clientX, startScreenY: e.clientY, startPanX: camera.panX, startPanY: camera.panY };
+    canvas.style.cursor = 'grabbing';
+  }
+  function updatePan(e){
+    camera.panX = panState.startPanX + (e.clientX - panState.startScreenX);
+    camera.panY = panState.startPanY + (e.clientY - panState.startScreenY);
+    requestRenderNow();
+  }
+  function endPan(){ panState = null; updateCursorForTool(); }
+
+  // ---- pinch (touch zoom + pan) ---------------------------------------------
+  function startPinch(){
+    const pts = Array.from(activePointers.values());
+    if (pts.length < 2) return;
+    const [a,b] = pts;
+    const mid = { x:(a.x+b.x)/2, y:(a.y+b.y)/2 };
+    pinch = { startDist: Math.hypot(a.x-b.x, a.y-b.y) || 1, startZoom: camera.zoom, startMidWorld: screenToWorld(mid.x, mid.y) };
+  }
+  function updatePinch(){
+    const pts = Array.from(activePointers.values());
+    if (pts.length < 2 || !pinch) return;
+    const [a,b] = pts;
+    const d = Math.hypot(a.x-b.x, a.y-b.y) || 1;
+    const mid = { x:(a.x+b.x)/2, y:(a.y+b.y)/2 };
+    camera.zoom = clamp(pinch.startZoom * (d / pinch.startDist), MIN_ZOOM, MAX_ZOOM);
+    camera.panX = mid.x - pinch.startMidWorld.x * camera.zoom;
+    camera.panY = mid.y - pinch.startMidWorld.y * camera.zoom;
+    requestRenderNow();
+  }
+  function cancelActiveActions(){
+    panState = null; currentStroke = null; erasing = null; selectDrag = null; rubberBand = null;
+  }
+
+  // ---- rendering ------------------------------------------------------------
+  function niceGridSpacing(zoom, targetPx){
+    let raw = targetPx / zoom;
+    if (raw <= 0) raw = 1;
+    const mag = Math.pow(10, Math.floor(Math.log10(raw)));
+    const norm = raw / mag;
+    let mult = norm < 1.5 ? 1 : norm < 3.5 ? 2 : norm < 7.5 ? 5 : 10;
+    return mag * mult;
+  }
+  // ---- Theme State ----
+  let isDarkMode = localStorage.getItem('canvas-theme') === 'dark';
+
   function getThemeColors() {
     return isDarkMode ? {
-      paper: '#121316', gridMajor: 'rgba(255,255,255,0.07)', gridMinor: 'rgba(255,255,255,0.025)'
+      paper: '#121316',
+      gridMajor: 'rgba(255,255,255,0.07)',
+      gridMinor: 'rgba(255,255,255,0.025)',
+      axisX: 'rgba(255,92,92,0.45)',
+      axisY: 'rgba(53,224,198,0.45)'
     } : {
-      paper: '#E9EAEE', gridMajor: 'rgba(20,21,26,0.10)', gridMinor: 'rgba(20,21,26,0.045)'
+      paper: '#E9EAEE',
+      gridMajor: 'rgba(20,21,26,0.10)',
+      gridMinor: 'rgba(20,21,26,0.045)',
+      axisX: 'rgba(255,92,92,0.35)',
+      axisY: 'rgba(61,92,255,0.35)'
     };
   }
 
-  function drawElement(targetCtx, el) {
-    targetCtx.save();
-    targetCtx.globalAlpha = el.opacity !== undefined ? el.opacity : 1;
-
-    if (el.type === 'text') {
-      targetCtx.font = `${el.fontSize}px 'Space Grotesk', sans-serif`;
-      targetCtx.fillStyle = isDarkMode && (el.color === '#14151A' || el.color === '#000000') ? '#FFFFFF' : el.color;
-      targetCtx.textBaseline = 'top';
-      const lines = el.text.split('\n');
-      lines.forEach((line, idx) => {
-        targetCtx.fillText(line, el.x, el.y + idx * el.fontSize * 1.2);
-      });
-    } else if (el.type === 'image') {
-      if (el._imgObj && el._imgObj.complete) {
-        targetCtx.drawImage(el._imgObj, el.x, el.y, el.width, el.height);
-      } else if (!el._imgObj) {
-        const img = new Image();
-        img.src = el.src;
-        img.onload = () => { el._imgObj = img; requestRenderNow(); };
-      }
-    } else { // Standard Stroke or Highlighter Path
-      if (el.isHighlighter) {
-        targetCtx.globalCompositeOperation = 'multiply';
-        targetCtx.lineCap = 'square';
-        targetCtx.lineJoin = 'miter';
-      } else {
-        targetCtx.lineCap = 'round';
-        targetCtx.lineJoin = 'round';
-      }
-
-      const drawColor = isDarkMode && (el.color === '#14151A' || el.color === '#000000') ? '#FFFFFF' : el.color;
-      targetCtx.strokeStyle = drawColor;
-      targetCtx.fillStyle = drawColor;
-      targetCtx.lineWidth = el.baseWidth;
-
-      if (state.bezierSmooth && el.points.length > 2) {
-        drawCatmullRomStroke(targetCtx, el);
-      } else {
-        targetCtx.beginPath();
-        if (el.points.length === 1) {
-          targetCtx.arc(el.points[0].x, el.points[0].y, el.baseWidth/2, 0, Math.PI*2);
-          targetCtx.fill();
-        } else {
-          targetCtx.moveTo(el.points[0].x, el.points[0].y);
-          for (let i = 1; i < el.points.length; i++) targetCtx.lineTo(el.points[i].x, el.points[i].y);
-          targetCtx.stroke();
-        }
-      }
+  function applyTheme() {
+    document.body.classList.toggle('dark-mode', isDarkMode);
+    const icon = document.getElementById('themeIcon');
+    if (icon) {
+      // Swaps between Sun and Moon SVG icons
+      icon.innerHTML = isDarkMode
+        ? '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>'
+        : '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>';
     }
-    targetCtx.restore();
+    requestRenderNow();
   }
 
-  // ---- Transform Box & Handles --------------------------------------------
-  function getTransformHandles(bbox) {
-    const { minX, minY, maxX, maxY } = bbox;
-    const midX = (minX + maxX)/2, midY = (minY + maxY)/2;
-    return {
-      nw: { x: minX, y: minY }, n: { x: midX, y: minY }, ne: { x: maxX, y: minY },
-      e: { x: maxX, y: midY }, se: { x: maxX, y: maxY }, s: { x: midX, y: maxY },
-      sw: { x: minX, y: maxY }, w: { x: minX, y: midY }
-    };
+  function getStrokeColor(color) {
+  if (!isDarkMode) return color;
+  const c = color.toLowerCase();
+  // Inverts black or near-black ink to white in dark mode
+  if (c === '#000000' || c === '#14151a' || c === '#121316' || c === 'black') {
+    return '#ffffff';
   }
+  return color;
+}
 
-  function drawSelectionAndHandles() {
-    if (!selectedIds.size) return;
-    const selectedElements = strokes.filter(s => selectedIds.has(s.id));
-    const bbox = getCombinedBBox(selectedElements);
-    const pad = 8 / camera.zoom;
-
+  // ---- Dynamic Grid & Render ----
+  function drawGrid(){
+    const theme = getThemeColors();
+    const topLeft = screenToWorld(0, 0);
+    const bottomRight = screenToWorld(window.innerWidth, window.innerHeight);
+    const spacing = niceGridSpacing(camera.zoom, 90);
+    const majorEvery = 5;
     ctx.save();
-    ctx.strokeStyle = '#35E0C6';
-    ctx.lineWidth = 1.5 / camera.zoom;
-    ctx.strokeRect(bbox.minX - pad, bbox.minY - pad, (bbox.maxX - bbox.minX) + pad*2, (bbox.maxY - bbox.minY) + pad*2);
-
-    // Draw 8 handle points
-    const handles = getTransformHandles({ minX: bbox.minX - pad, minY: bbox.minY - pad, maxX: bbox.maxX + pad, maxY: bbox.maxY + pad });
-    const handleSize = 7 / camera.zoom;
-
-    ctx.fillStyle = '#16171B';
-    for (const key in handles) {
-      const h = handles[key];
-      ctx.beginPath();
-      ctx.rect(h.x - handleSize/2, h.y - handleSize/2, handleSize, handleSize);
-      ctx.fill();
-      ctx.stroke();
-    }
-    ctx.restore();
-  }
-
-  function drawSmartGuideLines() {
-    if (!activeGuideLines.length) return;
-    ctx.save();
-    ctx.strokeStyle = '#FF5C5C';
     ctx.lineWidth = 1 / camera.zoom;
-    ctx.setLineDash([4 / camera.zoom, 4 / camera.zoom]);
-    for (const line of activeGuideLines) {
-      ctx.beginPath();
-      ctx.moveTo(line.x1, line.y1);
-      ctx.lineTo(line.x2, line.y2);
-      ctx.stroke();
+    const startI = Math.floor(topLeft.x / spacing);
+    for (let i = startI; i*spacing < bottomRight.x + spacing; i++){
+      const x = i*spacing;
+      ctx.strokeStyle = (i % majorEvery === 0) ? theme.gridMajor : theme.gridMinor;
+      ctx.beginPath(); ctx.moveTo(x, topLeft.y); ctx.lineTo(x, bottomRight.y); ctx.stroke();
+    }
+    const startJ = Math.floor(topLeft.y / spacing);
+    for (let j = startJ; j*spacing < bottomRight.y + spacing; j++){
+      const y = j*spacing;
+      ctx.strokeStyle = (j % majorEvery === 0) ? theme.gridMajor : theme.gridMinor;
+      ctx.beginPath(); ctx.moveTo(topLeft.x, y); ctx.lineTo(bottomRight.x, y); ctx.stroke();
+    }
+    if (topLeft.x <= 0 && bottomRight.x >= 0){
+      ctx.strokeStyle = theme.axisX;
+      ctx.beginPath(); ctx.moveTo(0, topLeft.y); ctx.lineTo(0, bottomRight.y); ctx.stroke();
+    }
+    if (topLeft.y <= 0 && bottomRight.y >= 0){
+      ctx.strokeStyle = theme.axisY;
+      ctx.beginPath(); ctx.moveTo(topLeft.x, 0); ctx.lineTo(bottomRight.x, 0); ctx.stroke();
     }
     ctx.restore();
   }
 
-  // ---- Main Canvas Render Loop ---------------------------------------------
-  function render() {
+  // Pure function: draws one stroke into any 2D context that already has the
+  // desired transform applied. Used for the live canvas AND for PNG export,
+  // so on-screen and exported output are guaranteed to match.
+  function drawStroke(targetCtx, stroke){
+    const pts = stroke.points;
+    if (!pts.length) return;
+    targetCtx.strokeStyle = getStrokeColor(stroke.color);
+    targetCtx.fillStyle = stroke.color;
+    targetCtx.lineCap = 'round';
+    targetCtx.lineJoin = 'round';
+    if (pts.length === 1){
+      const r = pressureToWidth(stroke, pts[0].p) / 2;
+      targetCtx.beginPath();
+      targetCtx.arc(pts[0].x, pts[0].y, r, 0, Math.PI*2);
+      targetCtx.fill();
+      return;
+    }
+    for (let i=0; i<pts.length-1; i++){
+      const p0 = pts[i], p1 = pts[i+1];
+      targetCtx.lineWidth = (pressureToWidth(stroke,p0.p) + pressureToWidth(stroke,p1.p)) / 2;
+      targetCtx.beginPath();
+      targetCtx.moveTo(p0.x, p0.y);
+      targetCtx.lineTo(p1.x, p1.y);
+      targetCtx.stroke();
+    }
+  }
+
+  function drawSelectionOutline(stroke){
+    const b = getStrokeBBox(stroke);
+    const pad = 6 / camera.zoom;
+    const x = b.minX-pad, y = b.minY-pad, w = (b.maxX-b.minX)+pad*2, h = (b.maxY-b.minY)+pad*2;
+    ctx.save();
+    ctx.strokeStyle = 'rgba(53,224,198,0.9)';
+    ctx.lineWidth = 1.5 / camera.zoom;
+    ctx.setLineDash([5/camera.zoom, 4/camera.zoom]);
+    ctx.strokeRect(x, y, w, h);
+    ctx.setLineDash([]);
+    const t = 8 / camera.zoom;
+    ctx.lineWidth = 2 / camera.zoom;
+    const corners = [[x,y,1,1],[x+w,y,-1,1],[x,y+h,1,-1],[x+w,y+h,-1,-1]];
+    for (const [cx,cy,sx,sy] of corners){
+      ctx.beginPath();
+      ctx.moveTo(cx, cy+t*sy); ctx.lineTo(cx, cy); ctx.lineTo(cx+t*sx, cy);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+  function drawRubberBand(){
+    const r = normalizeRect(rubberBand.startWorld, rubberBand.curWorld);
+    ctx.save();
+    ctx.fillStyle = 'rgba(53,224,198,0.12)';
+    ctx.strokeStyle = 'rgba(53,224,198,0.9)';
+    ctx.lineWidth = 1 / camera.zoom;
+    ctx.fillRect(r.minX, r.minY, r.maxX-r.minX, r.maxY-r.minY);
+    ctx.strokeRect(r.minX, r.minY, r.maxX-r.minX, r.maxY-r.minY);
+    ctx.restore();
+  }
+  function drawEraserPreview(){
+    if (state.tool !== 'eraser-stroke' && state.tool !== 'eraser-precision') return;
+    if (!lastPointerScreen || panState || pinch) return;
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(lastPointerScreen.x, lastPointerScreen.y, state.eraserRadius, 0, Math.PI*2);
+    ctx.strokeStyle = state.tool === 'eraser-stroke' ? 'rgba(255,92,92,0.9)' : 'rgba(53,224,198,0.9)';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([4,3]);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function render(){
     const theme = getThemeColors();
     ctx.setTransform(1,0,0,1,0,0);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -487,581 +809,339 @@
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     ctx.setTransform(dpr*camera.zoom, 0, 0, dpr*camera.zoom, dpr*camera.panX, dpr*camera.panY);
+    drawGrid();
+    for (const s of strokes) drawStroke(ctx, s);
+    for (const s of strokes) if (selectedIds.has(s.id)) drawSelectionOutline(s);
+    if (rubberBand) drawRubberBand();
 
-    // Draw Grid
-    const topLeft = screenToWorld(0, 0);
-    const bottomRight = screenToWorld(window.innerWidth, window.innerHeight);
-    const spacing = 50;
-    ctx.lineWidth = 1 / camera.zoom;
-    ctx.strokeStyle = theme.gridMinor;
-    for (let x = Math.floor(topLeft.x / spacing) * spacing; x < bottomRight.x; x += spacing) {
-      ctx.beginPath(); ctx.moveTo(x, topLeft.y); ctx.lineTo(x, bottomRight.y); ctx.stroke();
-    }
-    for (let y = Math.floor(topLeft.y / spacing) * spacing; y < bottomRight.y; y += spacing) {
-      ctx.beginPath(); ctx.moveTo(topLeft.x, y); ctx.lineTo(bottomRight.x, y); ctx.stroke();
-    }
-
-    // Render Scene Elements
-    for (const el of strokes) drawElement(ctx, el);
-    drawSelectionAndHandles();
-    drawSmartGuideLines();
-
-    if (rubberBand) {
-      const r = { minX: Math.min(rubberBand.startWorld.x, rubberBand.curWorld.x),
-                  minY: Math.min(rubberBand.startWorld.y, rubberBand.curWorld.y),
-                  maxX: Math.max(rubberBand.startWorld.x, rubberBand.curWorld.x),
-                  maxY: Math.max(rubberBand.startWorld.y, rubberBand.curWorld.y) };
-      ctx.fillStyle = 'rgba(53,224,198,0.12)';
-      ctx.strokeStyle = '#35E0C6';
-      ctx.fillRect(r.minX, r.minY, r.maxX - r.minX, r.maxY - r.minY);
-      ctx.strokeRect(r.minX, r.minY, r.maxX - r.minX, r.maxY - r.minY);
-    }
-
-    renderMinimap();
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    drawEraserPreview();
+    ctx.setTransform(1,0,0,1,0,0);
   }
 
-  // ---- Canvas Minimap Radar -----------------------------------------------
-  function renderMinimap() {
-    minimapCtx.clearRect(0, 0, minimapCanvas.width, minimapCanvas.height);
-    if (!strokes.length) return;
+  // ---- Listener & Init wiring ----
+  document.getElementById('themeBtn').addEventListener('click', () => {
+    isDarkMode = !isDarkMode;
+    localStorage.setItem('canvas-theme', isDarkMode ? 'dark' : 'light');
+    applyTheme();
+  });
 
-    const bbox = getCombinedBBox(strokes);
-    const padding = 200;
-    const worldW = Math.max(100, (bbox.maxX - bbox.minX) + padding * 2);
-    const worldH = Math.max(100, (bbox.maxY - bbox.minY) + padding * 2);
-
-    const scale = Math.min(minimapCanvas.width / worldW, minimapCanvas.height / worldH);
-    const offX = (minimapCanvas.width - worldW * scale) / 2 - (bbox.minX - padding) * scale;
-    const offY = (minimapCanvas.height - worldH * scale) / 2 - (bbox.minY - padding) * scale;
-
-    minimapCtx.fillStyle = 'rgba(53,224,198,0.4)';
-    for (const el of strokes) {
-      const b = getElementBBox(el);
-      minimapCtx.fillRect(b.minX * scale + offX, b.minY * scale + offY, (b.maxX - b.minX) * scale, (b.maxY - b.minY) * scale);
+  function requestRenderNow(){ needsRender = true; }
+  function updateReadouts(){
+    zoomReadout.textContent = Math.round(camera.zoom*100) + '%';
+    if (lastPointerScreen){
+      const w = screenToWorld(lastPointerScreen.x, lastPointerScreen.y);
+      coordReadout.textContent = 'X ' + w.x.toFixed(0) + '  Y ' + w.y.toFixed(0);
     }
-
-    // Camera Screen Box in Minimap
-    const camTL = screenToWorld(0, 0);
-    const camBR = screenToWorld(window.innerWidth, window.innerHeight);
-    minimapCtx.strokeStyle = '#FF5C5C';
-    minimapCtx.lineWidth = 1.5;
-    minimapCtx.strokeRect(camTL.x * scale + offX, camTL.y * scale + offY, (camBR.x - camTL.x) * scale, (camBR.y - camTL.y) * scale);
+  }
+  function frameLoop(){
+    if (needsRender){ render(); needsRender = false; updateReadouts(); }
+    requestAnimationFrame(frameLoop);
   }
 
-  minimapCanvas.addEventListener('click', (e) => {
-    const rect = minimapCanvas.getBoundingClientRect();
-    const mx = e.clientX - rect.left, my = e.clientY - rect.top;
-    const bbox = getCombinedBBox(strokes);
-    const padding = 200;
-    const worldW = Math.max(100, (bbox.maxX - bbox.minX) + padding * 2);
-    const worldH = Math.max(100, (bbox.maxY - bbox.minY) + padding * 2);
-    const scale = Math.min(minimapCanvas.width / worldW, minimapCanvas.height / worldH);
-    const offX = (minimapCanvas.width - worldW * scale) / 2 - (bbox.minX - padding) * scale;
-    const offY = (minimapCanvas.height - worldH * scale) / 2 - (bbox.minY - padding) * scale;
-
-    const targetWorldX = (mx - offX) / scale;
-    const targetWorldY = (my - offY) / scale;
-
-    camera.panX = window.innerWidth / 2 - targetWorldX * camera.zoom;
-    camera.panY = window.innerHeight / 2 - targetWorldY * camera.zoom;
+  // ---- resize -----------------------------------------------------------
+  function resize(){
+    dpr = window.devicePixelRatio || 1;
+    canvas.width  = Math.round(window.innerWidth * dpr);
+    canvas.height = Math.round(window.innerHeight * dpr);
+    canvas.style.width  = window.innerWidth + 'px';
+    canvas.style.height = window.innerHeight + 'px';
     requestRenderNow();
-  });
-
-  // ---- Text Tool & Double Click Editing -----------------------------------
-  function spawnTextEditor(el, isNew = false) {
-    activeEditingText = el;
-    const screenPos = worldToScreen(el.x, el.y);
-    textEditor.style.left = screenPos.x + 'px';
-    textEditor.style.top = screenPos.y + 'px';
-    textEditor.style.fontSize = (el.fontSize * camera.zoom) + 'px';
-    textEditor.style.color = el.color;
-    textEditor.value = el.text || '';
-    textEditor.style.display = 'block';
-    setTimeout(() => textEditor.focus(), 50);
   }
+  window.addEventListener('resize', resize);
 
-  textEditor.addEventListener('blur', finalizeTextEditing);
-  textEditor.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) { finalizeTextEditing(); }
-  });
-
-  function finalizeTextEditing() {
-    if (!activeEditingText) return;
-    const val = textEditor.value.trim();
-    if (val) {
-      pushHistory();
-      activeEditingText.text = val;
-      const lines = val.split('\n');
-      ctx.font = `${activeEditingText.fontSize}px 'Space Grotesk', sans-serif`;
-      let maxW = 0;
-      lines.forEach(l => maxW = Math.max(maxW, ctx.measureText(l).width));
-      activeEditingText.width = maxW || 50;
-      activeEditingText.height = lines.length * activeEditingText.fontSize * 1.2;
+  // ---- cursor / tool switching --------------------------------------------
+  function updateCursorForTool(){
+    if (spaceDown){ canvas.style.cursor = 'grab'; return; }
+    switch(state.tool){
+      case 'pen': canvas.style.cursor = 'crosshair'; break;
+      case 'eraser-stroke':
+      case 'eraser-precision': canvas.style.cursor = 'none'; break;
+      case 'hand': canvas.style.cursor = 'grab'; break;
+      case 'select': canvas.style.cursor = 'default'; break;
+    }
+  }
+  function setTool(name){
+    state.tool = name;
+    document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.tool === name));
+    if (name === 'eraser-stroke' || name === 'eraser-precision'){
+      sizeLabel.textContent = 'Eraser size';
+      sizeSlider.min = 4; sizeSlider.max = 100; sizeSlider.value = state.eraserRadius;
     } else {
-      strokes = strokes.filter(s => s !== activeEditingText);
+      sizeLabel.textContent = 'Brush size';
+      sizeSlider.min = 1; sizeSlider.max = 60; sizeSlider.value = state.baseWidth;
     }
-    textEditor.style.display = 'none';
-    activeEditingText = null;
-    saveToLocalStorage();
+    sizeValue.textContent = sizeSlider.value;
+    updateCursorForTool();
     requestRenderNow();
   }
 
-  // ---- Smart Snapping Engine -----------------------------------------------
-  function applySmartSnapping(movingBBox, dx, dy) {
-    activeGuideLines = [];
-    if (!state.snapToGrid) return { dx, dy };
-
-    const snapThreshold = 6 / camera.zoom;
-    let adjustedDx = dx, adjustedDy = dy;
-
-    // Grid snap
-    const gridSpacing = 50;
-    const targetX = movingBBox.minX + dx;
-    const targetY = movingBBox.minY + dy;
-
-    const nearestGridX = Math.round(targetX / gridSpacing) * gridSpacing;
-    const nearestGridY = Math.round(targetY / gridSpacing) * gridSpacing;
-
-    if (Math.abs(targetX - nearestGridX) < snapThreshold) {
-      adjustedDx = nearestGridX - movingBBox.minX;
-      activeGuideLines.push({ x1: nearestGridX, y1: -10000, x2: nearestGridX, y2: 10000 });
-    }
-    if (Math.abs(targetY - nearestGridY) < snapThreshold) {
-      adjustedDy = nearestGridY - movingBBox.minY;
-      activeGuideLines.push({ x1: -10000, y1: nearestGridY, x2: 10000, y2: nearestGridY });
-    }
-
-    return { dx: adjustedDx, dy: adjustedDy };
-  }
-
-  // ---- Image Import & Clipboard Drag-and-Drop ------------------------------
-  function importImageFile(file, worldX, worldY) {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const img = new Image();
-      img.src = e.target.result;
-      img.onload = () => {
-        pushHistory();
-        const aspect = img.width / img.height;
-        const w = Math.min(400, img.width);
-        const h = w / aspect;
-        const newImg = {
-          id: nextId++, type: 'image', x: worldX - w/2, y: worldY - h/2,
-          width: w, height: h, src: e.target.result, _imgObj: img, opacity: 1
-        };
-        strokes.push(newImg);
-        saveToLocalStorage();
-        requestRenderNow();
-        showToast('Image imported');
-      };
-    };
-    reader.readAsDataURL(file);
-  }
-
-  window.addEventListener('dragover', e => e.preventDefault());
-  window.addEventListener('drop', e => {
-    e.preventDefault();
-    const files = e.dataTransfer.files;
-    if (files.length) {
-      const pos = screenToWorld(e.clientX, e.clientY);
-      importImageFile(files[0], pos.x, pos.y);
-    }
-  });
-
-  window.addEventListener('paste', e => {
-    const items = (e.clipboardData || e.originalEvent.clipboardData).items;
-    for (const item of items) {
-      if (item.type.indexOf('image') === 0) {
-        const file = item.getAsFile();
-        const center = screenToWorld(window.innerWidth/2, window.innerHeight/2);
-        importImageFile(file, center.x, center.y);
-      }
-    }
-  });
-
-  // ---- User Interaction & Tools --------------------------------------------
-  function hitTestElement(p) {
-    for (let i = strokes.length - 1; i >= 0; i--) {
-      const bbox = getElementBBox(strokes[i]);
-      if (p.x >= bbox.minX && p.x <= bbox.maxX && p.y >= bbox.minY && p.y <= bbox.maxY) {
-        return strokes[i];
-      }
-    }
-    return null;
-  }
-
-  function startStroke(e) {
-    pushHistory();
-    const p = screenToWorld(e.clientX, e.clientY);
-    const isHighlighter = state.tool === 'highlighter';
-    currentStroke = {
-      id: nextId++, type: 'stroke', color: state.color, opacity: isHighlighter ? 0.4 : state.opacity,
-      baseWidth: isHighlighter ? state.baseWidth * 2.5 : state.baseWidth, isHighlighter,
-      points: [{ x: p.x, y: p.y, p: e.pressure || 0.5 }]
-    };
-    strokes.push(currentStroke);
-    lastDrawPoint = p;
-    requestRenderNow();
-  }
-
-  function moveStroke(e) {
-    if (!currentStroke) return;
-    const p = screenToWorld(e.clientX, e.clientY);
-    currentStroke.points.push({ x: p.x, y: p.y, p: e.pressure || 0.5 });
-    requestRenderNow();
-  }
-
-  function endStroke() {
-    currentStroke = null;
-    saveToLocalStorage();
-  }
+  // ---- pointer event wiring -------------------------------------------------
+  canvas.addEventListener('contextmenu', e => e.preventDefault());
+  canvas.addEventListener('dragstart', e => e.preventDefault());
 
   canvas.addEventListener('pointerdown', e => {
     canvas.setPointerCapture(e.pointerId);
-    activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    const p = screenToWorld(e.clientX, e.clientY);
+    activePointers.set(e.pointerId, { x:e.clientX, y:e.clientY });
+    lastPointerScreen = { x:e.clientX, y:e.clientY };
 
-    if (e.button === 1 || spaceDown || state.tool === 'hand') {
-      panState = { startScreenX: e.clientX, startScreenY: e.clientY, startPanX: camera.panX, startPanY: camera.panY };
+    if (activePointers.size >= 2){
+      cancelActiveActions();
+      startPinch();
       return;
     }
+    if (e.button === 1){ e.preventDefault(); startPan(e); return; }
+    if (e.button === 2) return;
 
-    if (state.tool === 'pen' || state.tool === 'highlighter') {
-      startStroke(e);
-    } else if (state.tool === 'text') {
-      const newText = { id: nextId++, type: 'text', x: p.x, y: p.y, text: '', fontSize: state.fontSize, color: state.color, opacity: state.opacity };
-      strokes.push(newText);
-      spawnTextEditor(newText, true);
-    } else if (state.tool === 'select') {
-      const hit = hitTestElement(p);
-      if (hit) {
-        if (!e.shiftKey && !selectedIds.has(hit.id)) selectedIds.clear();
-        selectedIds.add(hit.id);
-        selectDrag = { lastWorld: p, historyPushed: false };
-      } else {
-        if (!e.shiftKey) selectedIds.clear();
-        rubberBand = { startWorld: p, curWorld: p };
-      }
-      requestRenderNow();
+    const wantsPan = spaceDown || (e.shiftKey && e.button === 0) || (state.tool === 'hand' && e.button === 0);
+    if (wantsPan){ startPan(e); return; }
+
+    if (e.button === 0){
+      if (state.tool === 'pen') startStroke(e);
+      else if (state.tool === 'eraser-stroke') startErase(e, 'stroke');
+      else if (state.tool === 'eraser-precision') startErase(e, 'precision');
+      else if (state.tool === 'select') startSelect(e);
     }
   });
 
   canvas.addEventListener('pointermove', e => {
-    if (panState) {
-      camera.panX = panState.startPanX + (e.clientX - panState.startScreenX);
-      camera.panY = panState.startPanY + (e.clientY - panState.startScreenY);
-      requestRenderNow();
-      return;
-    }
-    if (currentStroke) moveStroke(e);
-    if (selectDrag) {
-      const p = screenToWorld(e.clientX, e.clientY);
-      let dx = p.x - selectDrag.lastWorld.x, dy = p.y - selectDrag.lastWorld.y;
+    if (activePointers.has(e.pointerId)) activePointers.set(e.pointerId, { x:e.clientX, y:e.clientY });
+    lastPointerScreen = { x:e.clientX, y:e.clientY };
 
-      const selectedObjs = strokes.filter(s => selectedIds.has(s.id));
-      const bbox = getCombinedBBox(selectedObjs);
-      const snapped = applySmartSnapping(bbox, dx, dy);
-
-      if (!selectDrag.historyPushed) { pushHistory(); selectDrag.historyPushed = true; }
-
-      for (const s of selectedObjs) {
-        if (s.type === 'stroke') for (const pt of s.points) { pt.x += snapped.dx; pt.y += snapped.dy; }
-        else { s.x += snapped.dx; s.y += snapped.dy; }
-      }
-      selectDrag.lastWorld = p;
-      requestRenderNow();
-    } else if (rubberBand) {
-      rubberBand.curWorld = screenToWorld(e.clientX, e.clientY);
-      const r = { minX: Math.min(rubberBand.startWorld.x, rubberBand.curWorld.x),
-                  minY: Math.min(rubberBand.startWorld.y, rubberBand.curWorld.y),
-                  maxX: Math.max(rubberBand.startWorld.x, rubberBand.curWorld.x),
-                  maxY: Math.max(rubberBand.startWorld.y, rubberBand.curWorld.y) };
-      selectedIds.clear();
-      for (const s of strokes) {
-        const b = getElementBBox(s);
-        if (!(b.maxX < r.minX || b.minX > r.maxX || b.maxY < r.minY || b.minY > r.maxY)) selectedIds.add(s.id);
-      }
-      requestRenderNow();
-    }
+    if (pinch && activePointers.size >= 2){ updatePinch(); return; }
+    if (panState){ updatePan(e); return; }
+    if (currentStroke){ moveStroke(e); return; }
+    if (erasing){ moveErase(e); return; }
+    if (selectDrag || rubberBand){ moveSelect(e); return; }
+    requestRenderNow(); // keep eraser-radius preview & coord readout live even when idle
   });
 
-  canvas.addEventListener('pointerup', () => {
-    panState = null; endStroke(); selectDrag = null; rubberBand = null; activeGuideLines = [];
-    saveToLocalStorage(); requestRenderNow();
-  });
-
-  canvas.addEventListener('dblclick', e => {
-    const p = screenToWorld(e.clientX, e.clientY);
-    const hit = hitTestElement(p);
-    if (hit && hit.type === 'text') spawnTextEditor(hit);
-  });
+  function onPointerEnd(e){
+    activePointers.delete(e.pointerId);
+    if (pinch && activePointers.size < 2) pinch = null;
+    if (panState && panState.pointerId === e.pointerId) endPan();
+    if (currentStroke) endStroke();
+    if (erasing) endErase();
+    if (selectDrag || rubberBand) endSelect();
+    try { canvas.releasePointerCapture(e.pointerId); } catch(err){}
+    requestRenderNow();
+    localStorage.setItem('infinite-canvas-save', JSON.stringify(strokes)); // added for local memory
+  }
+  canvas.addEventListener('pointerup', onPointerEnd);
+  canvas.addEventListener('pointercancel', onPointerEnd);
+  canvas.addEventListener('pointerleave', () => { lastPointerScreen = null; requestRenderNow(); });
 
   canvas.addEventListener('wheel', e => {
     e.preventDefault();
     const factor = Math.exp(-e.deltaY * 0.0016);
-    const before = screenToWorld(e.clientX, e.clientY);
-    camera.zoom = clamp(camera.zoom * factor, MIN_ZOOM, MAX_ZOOM);
-    camera.panX = e.clientX - before.x * camera.zoom;
-    camera.panY = e.clientY - before.y * camera.zoom;
-    requestRenderNow();
-  }, { passive: false });
+    zoomAt(e.clientX, e.clientY, factor);
+  }, { passive:false });
 
-  // ---- Grouping & Layering Commands ---------------------------------------
-  document.getElementById('groupBtn').addEventListener('click', toggleGrouping);
-  document.getElementById('frontBtn').addEventListener('click', () => changeZIndex('front'));
-  document.getElementById('backBtn').addEventListener('click', () => changeZIndex('back'));
+  // Minimize Panel Logic
+  document.querySelectorAll('.toggle-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const panel = e.target.closest('.panel');
+      panel.classList.toggle('collapsed');
+      
+      // Swap the arrow icon up/down
+      const isCollapsed = panel.classList.contains('collapsed');
+      btn.innerHTML = isCollapsed 
+        ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 10 12 18 20 10"></polyline></svg>'
+        : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 12 6 20 14"></polyline></svg>';
+    });
+  });
 
-  function toggleGrouping() {
-    if (!selectedIds.size) return;
-    pushHistory();
-    const selected = strokes.filter(s => selectedIds.has(s.id));
-    const isGrouped = selected.every(s => s.groupId);
-    if (isGrouped) {
-      selected.forEach(s => delete s.groupId);
-      showToast('Ungrouped elements');
-    } else {
-      const gId = 'group_' + Date.now();
-      selected.forEach(s => s.groupId = gId);
-      showToast('Grouped elements');
-    }
-    saveToLocalStorage();
-  }
-
-  function changeZIndex(direction) {
-    if (!selectedIds.size) return;
-    pushHistory();
-    const selected = strokes.filter(s => selectedIds.has(s.id));
-    strokes = strokes.filter(s => !selectedIds.has(s.id));
-    if (direction === 'front') strokes.push(...selected);
-    else strokes.unshift(...selected);
-    saveToLocalStorage(); requestRenderNow();
-  }
-
-  // ---- Keyboard Shortcuts & Spatial Bookmarks ------------------------------
+  // ---- keyboard ------------------------------------------------------------
   window.addEventListener('keydown', e => {
-    if (document.activeElement.tagName === 'TEXTAREA' || document.activeElement.tagName === 'INPUT') return;
+    const tag = document.activeElement && document.activeElement.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA') return;
 
-    if (e.code === 'Space') spaceDown = true;
-    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'c') copyToClipboard();
-    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'v') pasteFromClipboard();
-    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'g') { e.preventDefault(); toggleGrouping(); }
-    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); undo(); }
-    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') { e.preventDefault(); redo(); }
-
-    // Spatial Bookmarks (1..5 and Shift+1..5)
-    if (['1','2','3','4','5'].includes(e.key)) {
-      if (e.shiftKey) {
-        bookmarks[e.key] = { ...camera };
-        showToast(`Bookmark ${e.key} saved`);
-      } else if (bookmarks[e.key]) {
-        camera.panX = bookmarks[e.key].panX;
-        camera.panY = bookmarks[e.key].panY;
-        camera.zoom = bookmarks[e.key].zoom;
-        requestRenderNow();
-        showToast(`Recalled Bookmark ${e.key}`);
-      }
-    }
-
-    if (e.key === 'Delete' || e.key === 'Backspace') {
-      if (selectedIds.size) {
+    if (e.code === 'Space' && !spaceDown){ spaceDown = true; updateCursorForTool(); e.preventDefault(); return; }
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z'){ e.preventDefault(); e.shiftKey ? redo() : undo(); return; }
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y'){ e.preventDefault(); redo(); return; }
+    if (e.key === 'Delete' || e.key === 'Backspace'){
+      if (selectedIds.size){
         pushHistory();
         strokes = strokes.filter(s => !selectedIds.has(s.id));
         selectedIds.clear();
-        saveToLocalStorage(); requestRenderNow();
+        requestRenderNow();
+        e.preventDefault();
       }
+      return;
     }
-
     switch(e.key.toLowerCase()){
       case 'p': setTool('pen'); break;
-      case 'g': setTool('highlighter'); break;
-      case 't': setTool('text'); break;
       case 'e': setTool('eraser-stroke'); break;
       case 'x': setTool('eraser-precision'); break;
       case 'h': setTool('hand'); break;
-      case 'v': setTool('select'); break;
+      case 'v': case 's': setTool('select'); break;
+      case '0': resetView(); break;
     }
   });
+  window.addEventListener('keyup', e => { if (e.code === 'Space'){ spaceDown = false; updateCursorForTool(); } });
 
-  window.addEventListener('keyup', e => { if (e.code === 'Space') spaceDown = false; });
-
-  // ---- Clipboard Engine ---------------------------------------------------
-  function copyToClipboard() {
-    clipboard = strokes.filter(s => selectedIds.has(s.id)).map(s => JSON.parse(JSON.stringify(s)));
-    if (clipboard.length) showToast(`Copied ${clipboard.length} items`);
-  }
-
-  function pasteFromClipboard() {
-    if (!clipboard.length) return;
-    pushHistory();
-    selectedIds.clear();
-    for (const item of clipboard) {
-      item.id = nextId++;
-      if (item.type === 'stroke') item.points.forEach(p => { p.x += 30; p.y += 30; });
-      else { item.x += 30; item.y += 30; }
-      strokes.push(item);
-      selectedIds.add(item.id);
-    }
-    saveToLocalStorage(); requestRenderNow();
-    showToast('Pasted clipboard');
-  }
-
-  // ---- History & Serialization --------------------------------------------
-  function pushHistory() {
-    history.push(JSON.stringify(strokes));
-    if (history.length > HISTORY_LIMIT) history.shift();
-    future = [];
-  }
-  function undo() {
-    if (!history.length) return;
-    future.push(JSON.stringify(strokes));
-    strokes = JSON.parse(history.pop());
-    requestRenderNow();
-  }
-  function redo() {
-    if (!future.length) return;
-    history.push(JSON.stringify(strokes));
-    strokes = JSON.parse(future.pop());
-    requestRenderNow();
-  }
-
-  function saveToLocalStorage() {
-    localStorage.setItem('infinite-canvas-pro-save', JSON.stringify(strokes));
-  }
-
-  // ---- Targeted Export Options --------------------------------------------
-  document.getElementById('exportPngBtn').addEventListener('click', () => exportImage('png'));
-  document.getElementById('exportSvgBtn').addEventListener('click', () => exportImage('svg'));
-
-  function getExportElements() {
-    const scope = document.getElementById('exportScope').value;
-    if (scope === 'selected') return strokes.filter(s => selectedIds.has(s.id));
-    if (scope === 'viewport') {
-      const TL = screenToWorld(0,0), BR = screenToWorld(window.innerWidth, window.innerHeight);
-      return strokes.filter(s => {
-        const b = getElementBBox(s);
-        return !(b.maxX < TL.x || b.minX > BR.x || b.maxY < TL.y || b.minY > BR.y);
-      });
-    }
-    return strokes;
-  }
-
-  function exportImage(format) {
-    const exportList = getExportElements();
-    if (!exportList.length) { showToast('Nothing to export'); return; }
-
-    const bbox = getCombinedBBox(exportList);
-    const pad = 40, w = (bbox.maxX - bbox.minX) + pad*2, h = (bbox.maxY - bbox.minY) + pad*2;
-
-    if (format === 'png') {
-      const off = document.createElement('canvas');
-      off.width = w * 2; off.height = h * 2;
-      const octx = off.getContext('2d');
-      octx.scale(2, 2);
-      octx.fillStyle = '#FFFFFF';
-      octx.fillRect(0, 0, w, h);
-      octx.translate(pad - bbox.minX, pad - bbox.minY);
-      for (const el of exportList) drawElement(octx, el);
-
-      const a = document.createElement('a');
-      a.href = off.toDataURL('image/png');
-      a.download = 'canvas-export.png';
-      a.click();
-    } else {
-      let svg = `<?xml version="1.0"?><svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}">`;
-      svg += `<rect width="100%" height="100%" fill="#ffffff"/>`;
-      const offX = pad - bbox.minX, offY = pad - bbox.minY;
-      for (const el of exportList) {
-        if (el.type === 'text') {
-          svg += `<text x="${el.x + offX}" y="${el.y + offY + el.fontSize}" font-size="${el.fontSize}" fill="${el.color}">${el.text}</text>`;
-        } else if (el.type === 'stroke') {
-          let pathData = `M ${el.points[0].x + offX} ${el.points[0].y + offY}`;
-          for (let i = 1; i < el.points.length; i++) pathData += ` L ${el.points[i].x + offX} ${el.points[i].y + offY}`;
-          svg += `<path d="${pathData}" stroke="${el.color}" stroke-width="${el.baseWidth}" fill="none" stroke-linecap="round"/>`;
-        }
-      }
-      svg += `</svg>`;
-      const blob = new Blob([svg], { type: 'image/svg+xml' });
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = 'canvas-export.svg';
-      a.click();
-    }
-  }
-
-  // ---- UI Toolbar Wiring ---------------------------------------------------
-  function setTool(t) {
-    state.tool = t;
-    document.querySelectorAll('.tool-btn').forEach(b => b.classList.toggle('active', b.dataset.tool === t));
-  }
-  document.querySelectorAll('.tool-btn[data-tool]').forEach(b => b.addEventListener('click', () => setTool(b.dataset.tool)));
-
-  document.getElementById('snapBtn').addEventListener('click', (e) => {
-    state.snapToGrid = !state.snapToGrid;
-    e.currentTarget.classList.toggle('active', state.snapToGrid);
-    showToast(`Grid Snap ${state.snapToGrid ? 'ON' : 'OFF'}`);
-  });
-
-  document.getElementById('smoothBtn').addEventListener('click', (e) => {
-    state.bezierSmooth = !state.bezierSmooth;
-    e.currentTarget.classList.toggle('active', state.bezierSmooth);
-    showToast(`Bézier Smoothing ${state.bezierSmooth ? 'ON' : 'OFF'}`);
-  });
+  // ---- toolbar wiring ------------------------------------------------------
+  document.querySelectorAll('.tool-btn').forEach(btn => btn.addEventListener('click', () => setTool(btn.dataset.tool)));
 
   document.querySelectorAll('.swatch').forEach(btn => {
     btn.addEventListener('click', () => {
       state.color = btn.dataset.color;
       document.querySelectorAll('.swatch').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
+      document.getElementById('customColor').value = state.color;
     });
   });
+  document.getElementById('customColor').addEventListener('input', e => {
+    state.color = e.target.value;
+    document.querySelectorAll('.swatch').forEach(b => b.classList.remove('active'));
+  });
 
-  sizeSlider.addEventListener('input', e => { state.baseWidth = Number(e.target.value); sizeValue.textContent = state.baseWidth; });
-  opacitySlider.addEventListener('input', e => { state.opacity = Number(e.target.value); });
+  sizeSlider.addEventListener('input', e => {
+    const v = Number(e.target.value);
+    sizeValue.textContent = v;
+    if (state.tool === 'eraser-stroke' || state.tool === 'eraser-precision') state.eraserRadius = v;
+    else state.baseWidth = v;
+    requestRenderNow();
+  });
 
-  document.getElementById('resetViewBtn').addEventListener('click', () => { camera.zoom = 1; camera.panX = window.innerWidth/2; camera.panY = window.innerHeight/2; requestRenderNow(); });
-  document.getElementById('clearCanvasBtn').addEventListener('click', () => { if (confirm('Clear all content?')) { strokes = []; saveToLocalStorage(); requestRenderNow(); } });
+  document.getElementById('resetViewBtn').addEventListener('click', resetView);
   document.getElementById('undoBtn').addEventListener('click', undo);
   document.getElementById('redoBtn').addEventListener('click', redo);
 
-  function requestRenderNow() { needsRender = true; }
-  function updateReadouts() {
-    zoomReadout.textContent = Math.round(camera.zoom * 100) + '%';
-    if (lastPointerScreen) {
-      const w = screenToWorld(lastPointerScreen.x, lastPointerScreen.y);
-      coordReadout.textContent = `X ${w.x.toFixed(0)}  Y ${w.y.toFixed(0)}`;
+  // clear button script
+  document.getElementById('clearCanvasBtn').addEventListener('click', () => {
+    if (confirm('Are you sure you want to clear the entire canvas?')) {
+      strokes = [];
+      localStorage.removeItem('infinite-canvas-save');
+      requestRenderNow();
+      showToast('Canvas cleared');
     }
+  });
+
+  // save/load logic
+
+  // Save to JSON File
+  document.getElementById('saveFileBtn').addEventListener('click', () => {
+    if (!strokes.length) { showToast('Nothing to save yet'); return; }
+    const data = JSON.stringify(strokes);
+    const blob = new Blob([data], {type: 'application/json'});
+    const url = URL.createObjectURL(blob);
+    triggerDownload(url, 'my-drawing.json');
+    showToast('File saved');
+  });
+
+  // Load from JSON File
+  document.getElementById('loadFileBtn').addEventListener('click', () => {
+    document.getElementById('fileInput').click();
+  });
+  
+  document.getElementById('fileInput').addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        strokes = JSON.parse(ev.target.result);
+        localStorage.setItem('infinite-canvas-save', JSON.stringify(strokes));
+        resetView();
+        showToast('File loaded');
+      } catch (err) {
+        showToast('Error loading file');
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = ''; // Reset input
+  });
+  //end
+
+  document.getElementById('helpBtn').addEventListener('click', e => { e.stopPropagation(); helpPop.classList.toggle('show'); });
+  window.addEventListener('click', e => { if (!helpPop.contains(e.target) && e.target.id !== 'helpBtn') helpPop.classList.remove('show'); });
+
+  // ---- toast -----------------------------------------------------------
+  let toastTimer = null;
+  function showToast(msg){
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2200);
   }
 
-  function frameLoop() {
-    if (needsRender) { render(); needsRender = false; updateReadouts(); }
-    requestAnimationFrame(frameLoop);
+  // ---- export ----------------------------------------------------------
+  function triggerDownload(url, filename){
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
   }
 
-  function resize() {
-    dpr = window.devicePixelRatio || 1;
-    canvas.width = Math.round(window.innerWidth * dpr); canvas.height = Math.round(window.innerHeight * dpr);
-    canvas.style.width = window.innerWidth + 'px'; canvas.style.height = window.innerHeight + 'px';
-    minimapCanvas.width = 160; minimapCanvas.height = 110;
-    requestRenderNow();
-  }
+  document.getElementById('exportPngBtn').addEventListener('click', () => {
+    if (!strokes.length){ showToast('Nothing to export yet'); return; }
+    const bbox = computeStrokesBBox(strokes);
+    const pad = 40, scale = 2;
+    const w = (bbox.maxX-bbox.minX) + pad*2;
+    const h = (bbox.maxY-bbox.minY) + pad*2;
+    const off = document.createElement('canvas');
+    off.width = Math.max(1, Math.round(w*scale));
+    off.height = Math.max(1, Math.round(h*scale));
+    const octx = off.getContext('2d');
+    octx.fillStyle = '#FFFFFF';
+    octx.fillRect(0, 0, off.width, off.height);
+    octx.setTransform(scale, 0, 0, scale, (pad-bbox.minX)*scale, (pad-bbox.minY)*scale);
+    for (const s of strokes) drawStroke(octx, s);
+    triggerDownload(off.toDataURL('image/png'), 'vector-sketch.png');
+    showToast('PNG exported');
+  });
 
-  function showToast(msg) {
-    toastEl.textContent = msg; toastEl.classList.add('show');
-    setTimeout(() => toastEl.classList.remove('show'), 2000);
+  function strokeToSVGPaths(stroke, offX, offY){
+    const pts = stroke.points;
+    if (!pts.length) return '';
+    if (pts.length === 1){
+      const r = pressureToWidth(stroke, pts[0].p)/2;
+      return '<circle cx="'+(pts[0].x+offX).toFixed(2)+'" cy="'+(pts[0].y+offY).toFixed(2)+'" r="'+r.toFixed(2)+'" fill="'+stroke.color+'"/>\n';
+    }
+    let out = '';
+    for (let i=0; i<pts.length-1; i++){
+      const p0 = pts[i], p1 = pts[i+1];
+      const w = (pressureToWidth(stroke,p0.p) + pressureToWidth(stroke,p1.p)) / 2;
+      out += '<path d="M'+(p0.x+offX).toFixed(2)+' '+(p0.y+offY).toFixed(2)+' L'+(p1.x+offX).toFixed(2)+' '+(p1.y+offY).toFixed(2)+
+             '" stroke="'+stroke.color+'" stroke-width="'+w.toFixed(2)+'" stroke-linecap="round" fill="none"/>\n';
+    }
+    return out;
   }
+  document.getElementById('exportSvgBtn').addEventListener('click', () => {
+    if (!strokes.length){ showToast('Nothing to export yet'); return; }
+    const bbox = computeStrokesBBox(strokes);
+    const pad = 40;
+    const w = (bbox.maxX-bbox.minX) + pad*2;
+    const h = (bbox.maxY-bbox.minY) + pad*2;
+    const offX = pad - bbox.minX, offY = pad - bbox.minY;
+    let body = '';
+    for (const s of strokes) body += strokeToSVGPaths(s, offX, offY);
+    const svg = '<?xml version="1.0" encoding="UTF-8"?>\n' +
+      '<svg xmlns="http://www.w3.org/2000/svg" width="'+w.toFixed(0)+'" height="'+h.toFixed(0)+'" viewBox="0 0 '+w.toFixed(0)+' '+h.toFixed(0)+'">\n' +
+      '<rect width="100%" height="100%" fill="#ffffff"/>\n' + body + '</svg>\n';
+    const blob = new Blob([svg], { type:'image/svg+xml' });
+    const url = URL.createObjectURL(blob);
+    triggerDownload(url, 'vector-sketch.svg');
+    setTimeout(() => URL.revokeObjectURL(url), 1500);
+    showToast('SVG exported');
+  });
 
-  // Initialization
-  function init() {
+
+  // ---- init ---------------------------------------------------------------
+  function init(){
+    applyTheme();
+    loadLocalStrokes();
     resize();
-    window.addEventListener('resize', resize);
-    const saved = localStorage.getItem('infinite-canvas-pro-save');
-    if (saved) {
-      try { strokes = JSON.parse(saved); } catch(err){}
-    }
-    camera.panX = window.innerWidth / 2; camera.panY = window.innerHeight / 2;
+    camera.panX = window.innerWidth / 2;
+    camera.panY = window.innerHeight / 2;
+    setTool('pen');
+    const activeSwatch = document.querySelector('.swatch[data-color="'+state.color+'"]');
+    if (activeSwatch) activeSwatch.classList.add('active');
+    document.getElementById('customColor').value = state.color;
     requestAnimationFrame(frameLoop);
   }
   init();
+
 })();
 </script>
 </body>
