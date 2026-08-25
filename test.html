@@ -166,6 +166,11 @@
   <button class="tool-btn" data-tool="pen" title="Pen (P)" aria-label="Pen">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l1-5L15.5 4.5l4 4L9 19l-5 1z"/><path d="M13.5 6.5l4 4"/></svg>
   </button>
+  <div class="tool-group" id="brushModes">
+  <button class="icon-btn active" data-tool="pen" title="Pen">🖊️</button>
+  <button class="icon-btn" data-tool="highlighter" title="Highlighter">🖍️</button>
+  <button class="icon-btn" data-tool="marker" title="Marker">🖌️</button>
+</div>
   <button class="tool-btn" data-tool="eraser-stroke" title="Stroke Eraser — deletes whole strokes (E)" aria-label="Stroke Eraser">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="19" x2="19" y2="4"/><line x1="7" y1="6" x2="18" y2="17"/><line x1="18" y1="6" x2="7" y2="17"/></svg>
   </button>
@@ -497,7 +502,14 @@
   function startStroke(e){
     pushHistory();
     const p = screenToWorld(e.clientX, e.clientY);
-    currentStroke = { id: nextId++, color: state.color, baseWidth: state.baseWidth, points: [{x:p.x,y:p.y,p:normalizedPressure(e)}] };
+    
+    currentStroke = {
+      id: Date.now().toString(),
+      tool: currentTool,
+      color: currentColor,
+      size: currentSize,
+      points: [{ x: p.x, y: p.y, p: normalizedPressure(ev) }]
+    };
     strokes.push(currentStroke);
     lastDrawPoint = p;
     requestRenderNow();
@@ -734,29 +746,48 @@
   // Pure function: draws one stroke into any 2D context that already has the
   // desired transform applied. Used for the live canvas AND for PNG export,
   // so on-screen and exported output are guaranteed to match.
-  function drawStroke(targetCtx, stroke){
-    const pts = stroke.points;
-    if (!pts.length) return;
-    targetCtx.strokeStyle = getStrokeColor(stroke.color);
-    targetCtx.fillStyle = stroke.color;
-    targetCtx.lineCap = 'round';
-    targetCtx.lineJoin = 'round';
-    if (pts.length === 1){
-      const r = pressureToWidth(stroke, pts[0].p) / 2;
-      targetCtx.beginPath();
-      targetCtx.arc(pts[0].x, pts[0].y, r, 0, Math.PI*2);
-      targetCtx.fill();
-      return;
-    }
-    for (let i=0; i<pts.length-1; i++){
-      const p0 = pts[i], p1 = pts[i+1];
-      targetCtx.lineWidth = (pressureToWidth(stroke,p0.p) + pressureToWidth(stroke,p1.p)) / 2;
-      targetCtx.beginPath();
-      targetCtx.moveTo(p0.x, p0.y);
-      targetCtx.lineTo(p1.x, p1.y);
-      targetCtx.stroke();
-    }
+  function drawStroke(ctx, stroke) {
+  if (!stroke.points || stroke.points.length === 0) return;
+
+  ctx.save();
+  ctx.strokeStyle = stroke.color;
+  ctx.lineCap = stroke.tool === 'marker' ? 'square' : 'round';
+  ctx.lineJoin = 'round';
+
+  // Apply tool-specific styles
+  if (stroke.tool === 'highlighter') {
+    ctx.globalAlpha = 0.35;
+    ctx.lineWidth = stroke.size * 3.5;
+    ctx.globalCompositeOperation = 'multiply';
+  } else if (stroke.tool === 'marker') {
+    ctx.globalAlpha = 0.9;
+    ctx.lineWidth = stroke.size * 1.8;
+    ctx.globalCompositeOperation = 'source-over';
+  } else {
+    ctx.globalAlpha = 1.0;
+    ctx.lineWidth = stroke.size;
+    ctx.globalCompositeOperation = 'source-over';
   }
+
+  const pts = stroke.points;
+  ctx.beginPath();
+
+  if (pts.length < 3) {
+    ctx.moveTo(pts[0].x, pts[0].y);
+    for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+  } else {
+    ctx.moveTo(pts[0].x, pts[0].y);
+    for (let i = 1; i < pts.length - 1; i++) {
+      const midX = (pts[i].x + pts[i + 1].x) / 2;
+      const midY = (pts[i].y + pts[i + 1].y) / 2;
+      ctx.quadraticCurveTo(pts[i].x, pts[i].y, midX, midY);
+    }
+    ctx.lineTo(pts[pts.length - 1].x, pts[pts.length - 1].y);
+  }
+
+  ctx.stroke();
+  ctx.restore();
+}
 
   function drawSelectionOutline(stroke){
     const b = getStrokeBBox(stroke);
@@ -936,6 +967,18 @@
     const factor = Math.exp(-e.deltaY * 0.0016);
     zoomAt(e.clientX, e.clientY, factor);
   }, { passive:false });
+
+  // current tool framework
+  let currentTool = 'pen';
+
+  document.querySelectorAll('#brushModes .icon-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      document.querySelectorAll('#brushModes .icon-btn').forEach(b => b.classList.remove('active'));
+      const target = e.currentTarget;
+      target.classList.add('active');
+      currentTool = target.dataset.tool;
+    });
+  });
 
   // Minimize Panel Logic
   document.querySelectorAll('.toggle-btn').forEach(btn => {
