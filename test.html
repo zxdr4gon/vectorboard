@@ -297,6 +297,7 @@
 
   const camera = { panX: 0, panY: 0, zoom: 1 }; // world->screen: s = w*zoom + pan
 
+  let snapTimer = null;
   let strokes = [];          // the entire drawing, in world space
   let nextId = 1;
   const selectedIds = new Set();
@@ -489,16 +490,32 @@
     requestRenderNow();
   }
   function moveStroke(e){
-    const minDist = 1.2 / camera.zoom; // screen-space-consistent sampling density
-    for (const ev of getEvents(e)){
-      const p = screenToWorld(ev.clientX, ev.clientY);
-      if (Math.hypot(p.x-lastDrawPoint.x, p.y-lastDrawPoint.y) < minDist) continue;
-      currentStroke.points.push({ x:p.x, y:p.y, p:normalizedPressure(ev) });
-      lastDrawPoint = p;
-    }
-    requestRenderNow();
+  const minDist = 1.2 / camera.zoom; 
+  for (const ev of getEvents(e)){
+    const p = screenToWorld(ev.clientX, ev.clientY);
+    if (Math.hypot(p.x-lastDrawPoint.x, p.y-lastDrawPoint.y) < minDist) continue;
+    currentStroke.points.push({ x:p.x, y:p.y, p:normalizedPressure(ev) });
+    lastDrawPoint = p;
   }
-  function endStroke(){ currentStroke = null; lastDrawPoint = null; }
+
+  clearTimeout(snapTimer);
+  snapTimer = setTimeout(() => {
+    if (currentStroke && currentStroke.points.length > 2) {
+      const start = currentStroke.points[0];
+      const end = currentStroke.points[currentStroke.points.length - 1];
+      currentStroke.points = [start, end]; 
+      requestRenderNow();
+      showToast('Snapped to line');
+    }
+  }, 600);
+
+  requestRenderNow();
+}
+  function endStroke(){ 
+  clearTimeout(snapTimer);
+  currentStroke = null; 
+  lastDrawPoint = null; 
+}
 
   // ---- erasing ----------------------------------------------------------
   function startErase(e, mode){
