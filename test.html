@@ -290,6 +290,12 @@
   let history = [], future = [];
   let needsRender = true;
 
+  // load memory in browser
+  function loadLocalStrokes() {
+  const saved = localStorage.getItem('infinite-canvas-save');
+  if (saved) strokes = JSON.parse(saved);
+}
+
   // ---- small math helpers -------------------------------------------------
   function clamp(v, lo, hi){ return Math.min(hi, Math.max(lo, v)); }
   function dist(a, b){ return Math.hypot(a.x - b.x, a.y - b.y); }
@@ -775,6 +781,7 @@
     if (selectDrag || rubberBand) endSelect();
     try { canvas.releasePointerCapture(e.pointerId); } catch(err){}
     requestRenderNow();
+    localStorage.setItem('infinite-canvas-save', JSON.stringify(strokes)); // added for local memory
   }
   canvas.addEventListener('pointerup', onPointerEnd);
   canvas.addEventListener('pointercancel', onPointerEnd);
@@ -915,19 +922,6 @@
     showToast('SVG exported');
   });
 
-  // ---- local memory --------------------------------------------------------
-function saveDrawing() {
-  localStorage.setItem('vectorCanvasMemory', JSON.stringify(strokes));
-}
-
-function loadDrawing() {
-  const saved = localStorage.getItem('vectorCanvasMemory');
-  if (saved) {
-    strokes = JSON.parse(saved);
-    // Adjust nextId so new strokes don't overwrite old ones
-    nextId = Math.max(1, ...strokes.map(s => s.id)) + 1;
-  }
-}
 
   // ---- init ---------------------------------------------------------------
   function init(){
