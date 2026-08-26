@@ -950,19 +950,7 @@
         }
       });
     }
-    
-    // Wire canvas click to trigger text placement:
-    canvas.addEventListener('pointerdown', e => {
-      if (e.button === 0 && state.tool === 'text') {
-        const p = screenToWorld(e.clientX, e.clientY);
-        const hit = hitTestStroke(p);
-        if (hit && hit.type === 'text') {
-          spawnTextEditor(p, hit);
-        } else {
-          spawnTextEditor(p);
-        }
-      }
-    });
+
   
   
   function drawRubberBand(){
@@ -1088,6 +1076,15 @@
       else if (state.tool === 'eraser-stroke') startErase(e, 'stroke');
       else if (state.tool === 'eraser-precision') startErase(e, 'precision');
       else if (state.tool === 'select') startSelect(e);
+      else if (state.tool === 'text') {
+        const p = screenToWorld(e.clientX, e.clientY);
+        const hit = hitTestStroke(p);
+        if (hit && hit.type === 'text') {
+          spawnTextEditor(p, hit);
+        } else {
+          spawnTextEditor(p);
+        }
+      }
     }
   });
 
