@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
   :root{
     --graphite-900:#16171B;
@@ -71,21 +72,6 @@
   .tool-btn:hover{ background:var(--graphite-700); color:#fff; }
   .tool-btn.active{ background:var(--signal-soft); color:var(--signal); box-shadow:inset 0 0 0 1px rgba(53,224,198,0.45); }
   .tool-btn:active{ transform:scale(0.92); }
-
-  .canvas-text-input {
-    position: fixed;
-    background: transparent;
-    border: 1px dashed var(--signal);
-    outline: none;
-    padding: 0;
-    margin: 0;
-    resize: none;
-    overflow: hidden;
-    white-space: pre;
-    z-index: 100;
-    font-family: var(--font-ui);
-    line-height: 1.2;
-  }
 
   .icon-btn{
     height:36px; padding:0 12px; display:flex; align-items:center; gap:6px;
@@ -160,6 +146,43 @@
     color: var(--signal); 
   }
   
+  /* ---- template popover (reuses help-pop styling) ---- */
+  .template-pop{ top:60px; right:16px; }
+  .template-pop .tpl-row{ display:flex; align-items:center; gap:8px; padding:6px 4px; border-radius:8px; cursor:pointer; font-size:12px; color:var(--ink-soft); }
+  .template-pop .tpl-row:hover{ background:var(--graphite-700); color:#fff; }
+  .template-pop .tpl-row.active{ color:var(--signal); }
+  .template-pop .tpl-swatch{ width:26px; height:20px; border-radius:4px; border:1px solid rgba(255,255,255,0.15); flex:0 0 auto; background:#fff; }
+
+  /* ---- drag & drop overlay ---- */
+  .drop-overlay{
+    position:fixed; inset:0; z-index:30; display:none; align-items:center; justify-content:center;
+    background:rgba(53,224,198,0.10); border:3px dashed var(--signal);
+    font-family:var(--font-ui); font-size:20px; font-weight:600; color:var(--signal);
+    pointer-events:none;
+  }
+  .drop-overlay.show{ display:flex; }
+
+  /* ---- node text editor overlay ---- */
+  .node-editor{
+    position:fixed; z-index:25; background:transparent; border:none; outline:none; resize:none;
+    font-family:var(--font-ui); font-weight:600; text-align:center; color:#14151A;
+    padding:4px; overflow:hidden;
+  }
+
+  /* ---- shapes flyout group ---- */
+  .shape-flyout{ position:relative; display:flex; }
+  .shape-flyout .tool-btn.group-toggle{ position:relative; }
+  .shape-flyout .flyout-menu{
+    position:absolute; top:44px; left:50%; transform:translateX(-50%);
+    background:linear-gradient(180deg, rgba(31,33,37,0.97), rgba(20,21,25,0.97));
+    border:1px solid rgba(255,255,255,0.08); border-radius:var(--radius-md);
+    box-shadow:0 14px 34px rgba(0,0,0,.35); padding:6px; display:none; gap:3px; z-index:15;
+  }
+  .shape-flyout.open .flyout-menu{ display:flex; }
+
+  /* ---- media (image/pdf) selection resize handle cursor hint ---- */
+  #c.resize-cursor{ cursor:nwse-resize; }
+
   @media (max-width:720px){
     .size-group label{ display:none; }
     .size-group input[type=range]{ width:56px; }
@@ -181,6 +204,9 @@
   <button class="tool-btn" data-tool="pen" title="Pen (P)" aria-label="Pen">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l1-5L15.5 4.5l4 4L9 19l-5 1z"/><path d="M13.5 6.5l4 4"/></svg>
   </button>
+  <button class="tool-btn" data-tool="highlighter" title="Highlighter (M)" aria-label="Highlighter">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l6-6 4 4-6 6H9v-4z"/><path d="M4 20l3-3"/><path d="M6 15l3 3-2 2H4v-3z"/></svg>
+  </button>
   <button class="tool-btn" data-tool="eraser-stroke" title="Stroke Eraser — deletes whole strokes (E)" aria-label="Stroke Eraser">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="19" x2="19" y2="4"/><line x1="7" y1="6" x2="18" y2="17"/><line x1="18" y1="6" x2="7" y2="17"/></svg>
   </button>
@@ -193,13 +219,34 @@
   <button class="tool-btn" data-tool="select" title="Select (V)" aria-label="Select tool">
     <svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M4 3l7.5 17.5 2-7.3 7.3-2z"/></svg>
   </button>
-  <button class="tool-btn" data-tool="text" title="Text Tool (T)" aria-label="Text tool">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-      <polyline points="4 7 4 4 20 4 20 7"></polyline>
-      <line x1="9" y1="20" x2="15" y2="20"></line>
-      <line x1="12" y1="4" x2="12" y2="20"></line>
-    </svg>
-  </button>
+
+  <div class="divider"></div>
+
+  <div class="shape-flyout" id="shapeFlyout">
+    <button class="tool-btn group-toggle" id="shapeFlyoutToggle" title="Shapes" aria-label="Shapes">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="8" height="8" rx="1.5"/><circle cx="17" cy="7" r="4"/><path d="M4 21l6-11 6 11z"/></svg>
+    </button>
+    <div class="flyout-menu">
+      <button class="tool-btn" data-tool="rect" title="Rectangle (R)" aria-label="Rectangle">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="6" width="16" height="12" rx="1.5"/></svg>
+      </button>
+      <button class="tool-btn" data-tool="ellipse" title="Ellipse (O)" aria-label="Ellipse">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><ellipse cx="12" cy="12" rx="8" ry="6"/></svg>
+      </button>
+      <button class="tool-btn" data-tool="triangle" title="Triangle (T)" aria-label="Triangle">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 4l9 16H3z"/></svg>
+      </button>
+      <button class="tool-btn" data-tool="arrow" title="Arrow (A)" aria-label="Arrow">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20L20 4"/><path d="M9 4h11v11"/></svg>
+      </button>
+      <button class="tool-btn" data-tool="node" title="Mind-map node (N)" aria-label="Mind-map node">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="8" width="18" height="8" rx="4"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+      </button>
+      <button class="tool-btn" data-tool="connector" title="Connector — link two shapes (C)" aria-label="Connector">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="5" cy="19" r="2.2"/><circle cx="19" cy="5" r="2.2"/><path d="M7 17.5L17 6.5"/></svg>
+      </button>
+    </div>
+  </div>
 
   <div class="divider"></div>
 
@@ -253,6 +300,12 @@
   <button class="icon-btn" id="saveFileBtn" title="Save to File">Save File</button>
   <button class="icon-btn" id="loadFileBtn" title="Open File">Open File</button>
   <input type="file" id="fileInput" style="display:none" accept=".json">
+  <button class="icon-btn" id="importMediaBtn" title="Import PDF or image">Import</button>
+  <input type="file" id="mediaInput" style="display:none" accept="application/pdf,image/*" multiple>
+  <div class="divider"></div>
+  <button class="icon-btn square" id="templateBtn" title="Paper template" aria-label="Paper template">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="13" y2="16"/></svg>
+  </button>
   <div class="divider"></div>
   <button class="icon-btn" id="exportPngBtn" title="Export PNG">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15v3a2 2 0 002 2h12a2 2 0 002-2v-3"/><path d="M7 10l5 5 5-5"/><path d="M12 15V4"/></svg>
@@ -273,14 +326,31 @@
   <div class="help-row"><span>X</span><span>Precision eraser</span></div>
   <div class="help-row"><span>H</span><span>Hand / pan</span></div>
   <div class="help-row"><span>V</span><span>Select</span></div>
-  <div class="help-row"><span>T</span><span>Text tool</span></div>
   <div class="help-row"><span>Space (hold)</span><span>Pan</span></div>
   <div class="help-row"><span>Mid-click / Shift-drag</span><span>Pan</span></div>
   <div class="help-row"><span>Scroll / Pinch</span><span>Zoom</span></div>
   <div class="help-row"><span>0</span><span>Reset view</span></div>
   <div class="help-row"><span>Del</span><span>Delete selection</span></div>
   <div class="help-row"><span>Ctrl+Z / ⇧Z</span><span>Undo / Redo</span></div>
+  <div class="help-row"><span>R / O / T / A / N / C</span><span>Rect/Ellipse/Triangle/Arrow/Node/Connector</span></div>
+  <div class="help-row"><span>M</span><span>Highlighter</span></div>
+  <div class="help-row"><span>Drag &amp; drop</span><span>Import PDF / image</span></div>
 </div>
+
+<div class="help-pop template-pop" id="templatePop">
+  <div class="help-title">Paper template</div>
+  <div class="tpl-row" data-template="grid"><span class="tpl-swatch"></span>Blueprint grid</div>
+  <div class="tpl-row" data-template="dots"><span class="tpl-swatch"></span>Dot grid</div>
+  <div class="tpl-row" data-template="graph"><span class="tpl-swatch"></span>Graph paper</div>
+  <div class="tpl-row" data-template="lined"><span class="tpl-swatch"></span>Lined paper</div>
+  <div class="tpl-row" data-template="cornell"><span class="tpl-swatch"></span>Cornell notes</div>
+  <div class="tpl-row" data-template="isometric"><span class="tpl-swatch"></span>Isometric grid</div>
+  <div class="tpl-row" data-template="staves"><span class="tpl-swatch"></span>Music staves</div>
+  <div class="tpl-row" data-template="blank"><span class="tpl-swatch"></span>Blank</div>
+</div>
+
+<div class="drop-overlay" id="dropOverlay">Drop PDF or image to import</div>
+<textarea class="node-editor" id="nodeEditor" style="display:none" rows="1"></textarea>
 
 <div class="readout" id="readoutPanel">
   <div class="brand">Infinite canvas</div>
@@ -324,33 +394,38 @@
   const PAPER_COLOR = '#E9EAEE';
 
   // ---- app state --------------------------------------------------------
+  const SHAPE_TYPES = new Set(['rect','ellipse','triangle','arrow','node']);
   const state = {
-    tool: 'pen', // 'pen' | 'eraser-stroke' | 'eraser-precision' | 'hand' | 'select' | 'text'
+    tool: 'pen',            // 'pen' | 'highlighter' | 'eraser-stroke' | 'eraser-precision' | 'hand' | 'select' | shape tools | 'connector'
     color: '#14151A',
-    baseWidth: 6,
-    eraserRadius: 22,
-    fontSize: 24 // Base world font size
+    baseWidth: 6,            // world units — pen brush diameter at full pressure
+    eraserRadius: 22,        // SCREEN pixels — kept constant on screen regardless of zoom
+    template: localStorage.getItem('canvas-template') || 'grid',
   };
-
-  
 
   const camera = { panX: 0, panY: 0, zoom: 1 }; // world->screen: s = w*zoom + pan
 
   let snapTimer = null;
-  let strokes = [];          // the entire drawing, in world space
+  let strokes = [];          // the entire drawing (freehand strokes + shapes), in world space
+  let media = [];            // dropped-in PDFs / images: {id,kind:'image'|'pdf',dataURL,x,y,w,h}
+  let connectors = [];       // {id, fromId, toId} — anchors recomputed live from shape/media geometry
   let nextId = 1;
   const selectedIds = new Set();
+  const mediaImageCache = new Map(); // id -> HTMLImageElement, rebuilt from dataURL on load
 
   // interaction state
   const activePointers = new Map(); // pointerId -> {x,y} in screen space
   let panState = null;
   let currentStroke = null, lastDrawPoint = null;
   let erasing = null;         // { mode: 'stroke' | 'precision' }
-  let selectDrag = null;      // { lastWorld, historyPushed }
+  let selectDrag = null;      // { lastWorld, historyPushed, resizingId }
   let rubberBand = null;      // { startWorld, curWorld }
   let pinch = null;
   let spaceDown = false;
   let lastPointerScreen = null;
+  let shapeDraft = null;      // { type, start, end } — live preview while dragging a shape tool
+  let connectorDraft = null;  // { fromId, curWorld }
+  let editingNodeId = null;
 
   let history = [], future = [];
   let needsRender = true;
@@ -359,7 +434,80 @@
   function loadLocalStrokes() {
   const saved = localStorage.getItem('infinite-canvas-save');
   if (saved) strokes = JSON.parse(saved);
+  const savedConn = localStorage.getItem('infinite-canvas-connectors');
+  if (savedConn) { try { connectors = JSON.parse(savedConn); } catch(e){ connectors = []; } }
 }
+  function saveLocalStrokes(){
+    localStorage.setItem('infinite-canvas-save', JSON.stringify(strokes));
+    localStorage.setItem('infinite-canvas-connectors', JSON.stringify(connectors));
+  }
+
+  // ---- IndexedDB: persistent store for imported media (PDF pages / images) --
+  // localStorage is unsuitable for this (5-10MB quota, easily blown by a
+  // couple of scanned pages) so large raster payloads live in IndexedDB while
+  // vector data (strokes/shapes/connectors) keeps using the existing
+  // localStorage path above, untouched for backward compatibility.
+  const IDB_NAME = 'infinite-canvas-db', IDB_STORE = 'media', IDB_VERSION = 1;
+  let idbPromise = null;
+  function openIDB(){
+    if (idbPromise) return idbPromise;
+    idbPromise = new Promise((resolve, reject) => {
+      if (!('indexedDB' in window)) { resolve(null); return; }
+      const req = indexedDB.open(IDB_NAME, IDB_VERSION);
+      req.onupgradeneeded = () => { req.result.createObjectStore(IDB_STORE, { keyPath: 'id' }); };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => resolve(null);
+    });
+    return idbPromise;
+  }
+  async function idbPutMedia(item){
+    const db = await openIDB();
+    if (!db) return;
+    return new Promise(resolve => {
+      const tx = db.transaction(IDB_STORE, 'readwrite');
+      tx.objectStore(IDB_STORE).put(item);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => resolve();
+    });
+  }
+  async function idbDeleteMedia(id){
+    const db = await openIDB();
+    if (!db) return;
+    return new Promise(resolve => {
+      const tx = db.transaction(IDB_STORE, 'readwrite');
+      tx.objectStore(IDB_STORE).delete(id);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => resolve();
+    });
+  }
+  async function idbLoadAllMedia(){
+    const db = await openIDB();
+    if (!db) return [];
+    return new Promise(resolve => {
+      const tx = db.transaction(IDB_STORE, 'readonly');
+      const req = tx.objectStore(IDB_STORE).getAll();
+      req.onsuccess = () => resolve(req.result || []);
+      req.onerror = () => resolve([]);
+    });
+  }
+  function persistMediaItem(item){
+    idbPutMedia({ id:item.id, kind:item.kind, dataURL:item.dataURL, x:item.x, y:item.y, w:item.w, h:item.h });
+  }
+  async function loadLocalMedia(){
+    const items = await idbLoadAllMedia();
+    for (const it of items){
+      media.push(it);
+      loadMediaImage(it);
+      if (it.id >= nextId) nextId = it.id + 1;
+    }
+    requestRenderNow();
+  }
+  function loadMediaImage(item){
+    const img = new Image();
+    img.onload = () => requestRenderNow();
+    img.src = item.dataURL;
+    mediaImageCache.set(item.id, img);
+  }
 
   // ---- small math helpers -------------------------------------------------
   function clamp(v, lo, hi){ return Math.min(hi, Math.max(lo, v)); }
@@ -412,6 +560,7 @@
     return Math.max(0.75, stroke.baseWidth * (0.3 + p * 1.4));
   }
   function getStrokeBBox(stroke){
+    if (stroke.type && SHAPE_TYPES.has(stroke.type)) return getShapeBBox(stroke);
     let minX=Infinity, minY=Infinity, maxX=-Infinity, maxY=-Infinity;
     for (const pt of stroke.points){
       const hw = pressureToWidth(stroke, pt.p) / 2;
@@ -422,6 +571,29 @@
     }
     return { minX, minY, maxX, maxY };
   }
+  // Shapes (rect/ellipse/triangle/arrow/node) store their geometry as plain
+  // world-space corner/vertex points with no per-point pressure, so their
+  // bbox is just a min/max sweep with a small padding for the stroke width.
+  function getShapeBBox(shape){
+    let minX=Infinity, minY=Infinity, maxX=-Infinity, maxY=-Infinity;
+    for (const pt of shape.points){
+      if (pt.x < minX) minX = pt.x; if (pt.x > maxX) maxX = pt.x;
+      if (pt.y < minY) minY = pt.y; if (pt.y > maxY) maxY = pt.y;
+    }
+    const pad = (shape.baseWidth||2)/2;
+    return { minX:minX-pad, minY:minY-pad, maxX:maxX+pad, maxY:maxY+pad };
+  }
+  function getMediaBBox(item){
+    return { minX:item.x, minY:item.y, maxX:item.x+item.w, maxY:item.y+item.h };
+  }
+  // Unified bbox lookup across the three item kinds (freehand/shape items
+  // live in `strokes`, raster items live in `media`).
+  function getItemBBox(item){
+    return (item.kind === 'image' || item.kind === 'pdf') ? getMediaBBox(item) : getStrokeBBox(item);
+  }
+  function findItemById(id){
+    return strokes.find(s => s.id === id) || media.find(m => m.id === id) || null;
+  }
   function computeStrokesBBox(list){
     let minX=Infinity, minY=Infinity, maxX=-Infinity, maxY=-Infinity;
     for (const s of list){
@@ -431,9 +603,52 @@
     }
     return { minX, minY, maxX, maxY };
   }
+  function computeSceneBBox(){
+    const all = [...strokes, ...media];
+    let minX=Infinity, minY=Infinity, maxX=-Infinity, maxY=-Infinity;
+    for (const it of all){
+      const b = getItemBBox(it);
+      minX = Math.min(minX, b.minX); minY = Math.min(minY, b.minY);
+      maxX = Math.max(maxX, b.maxX); maxY = Math.max(maxY, b.maxY);
+    }
+    return { minX, minY, maxX, maxY };
+  }
   function strokeIntersectsRect(stroke, rect){
     const b = getStrokeBBox(stroke);
     return !(b.maxX < rect.minX || b.minX > rect.maxX || b.maxY < rect.minY || b.minY > rect.maxY);
+  }
+  function itemIntersectsRect(item, rect){
+    const b = getItemBBox(item);
+    return !(b.maxX < rect.minX || b.minX > rect.maxX || b.maxY < rect.minY || b.minY > rect.maxY);
+  }
+  function pointInBBox(p, b){ return p.x>=b.minX && p.x<=b.maxX && p.y>=b.minY && p.y<=b.maxY; }
+  function pointInTriangle(p, a, b, c){
+    const d1 = (p.x-b.x)*(a.y-b.y) - (a.x-b.x)*(p.y-b.y);
+    const d2 = (p.x-c.x)*(b.y-c.y) - (b.x-c.x)*(p.y-c.y);
+    const d3 = (p.x-a.x)*(c.y-a.y) - (c.x-a.x)*(p.y-a.y);
+    const hasNeg = (d1<0)||(d2<0)||(d3<0), hasPos = (d1>0)||(d2>0)||(d3>0);
+    return !(hasNeg && hasPos);
+  }
+  function pointInEllipse(p, b){
+    const cx=(b.minX+b.maxX)/2, cy=(b.minY+b.maxY)/2, rx=(b.maxX-b.minX)/2||1, ry=(b.maxY-b.minY)/2||1;
+    const dx=(p.x-cx)/rx, dy=(p.y-cy)/ry;
+    return dx*dx+dy*dy <= 1;
+  }
+  function triangleVertices(shape){
+    const b = getShapeBBox(shape);
+    return [{x:(b.minX+b.maxX)/2, y:b.minY}, {x:b.minX, y:b.maxY}, {x:b.maxX, y:b.maxY}];
+  }
+  // Hit-test for shape items (rect/ellipse/triangle/arrow/node) — filled
+  // interior for rect/ellipse/triangle/node, tolerance-band for arrow's line.
+  function hitTestShape(shape, p, tol){
+    const b = getShapeBBox(shape);
+    switch(shape.type){
+      case 'rect': case 'node': return pointInBBox(p, b);
+      case 'ellipse': return pointInEllipse(p, b);
+      case 'triangle': return pointInTriangle(p, ...triangleVertices(shape));
+      case 'arrow': return distToSegment(p, shape.points[0], shape.points[1]) <= tol;
+    }
+    return false;
   }
   function strokeHitByCircle(stroke, center, r){
     const pts = stroke.points;
@@ -446,44 +661,39 @@
     }
     return false;
   }
-
-    function getTextBBox(stroke) {
-      ctx.save();
-      ctx.font = `${stroke.fontSize || 24}px var(--font-ui)`;
-      const lines = stroke.text.split('\n');
-      let maxW = 0;
-      for (const line of lines) {
-        const w = ctx.measureText(line).width;
-        if (w > maxW) maxW = w;
-      }
-      const lineHeight = (stroke.fontSize || 24) * 1.2;
-      const totalH = lines.length * lineHeight;
-      ctx.restore();
-    
-      return {
-        minX: stroke.x,
-        minY: stroke.y,
-        maxX: stroke.x + maxW,
-        maxY: stroke.y + totalH,
-        width: maxW,
-        height: totalH
-      };
+  function hitTestStroke(p){
+    for (let i = strokes.length-1; i >= 0; i--){
+      if (strokeHitByCircle(strokes[i], p, 6/camera.zoom)) return strokes[i];
     }
-  
-  function hitTestStroke(p) {
-      for (let i = strokes.length - 1; i >= 0; i--) {
-        const s = strokes[i];
-        if (s.type === 'text') {
-          const b = getTextBBox(s);
-          if (p.x >= b.minX && p.x <= b.maxX && p.y >= b.minY && p.y <= b.maxY) {
-            return s;
-          }
-        } else if (strokeHitByCircle(s, p, 6 / camera.zoom)) {
-          return s;
-        }
-      }
-      return null;
+    return null;
+  }
+  // Combined hit-test used by the select/connector tools: checks shapes and
+  // media (topmost first) before falling back to freehand stroke hit-testing.
+  function hitTestItem(p){
+    const tol = 6/camera.zoom;
+    for (let i = strokes.length-1; i >= 0; i--){
+      const s = strokes[i];
+      if (s.type && SHAPE_TYPES.has(s.type)){ if (hitTestShape(s, p, tol)) return s; }
+      else if (strokeHitByCircle(s, p, tol)) return s;
     }
+    for (let i = media.length-1; i >= 0; i--){
+      if (pointInBBox(p, getMediaBBox(media[i]))) return media[i];
+    }
+    return null;
+  }
+  // Only shapes/nodes/media can anchor a connector (freehand ink has no
+  // stable "edge" to clip a line to).
+  function hitTestAnchorable(p){
+    const tol = 6/camera.zoom;
+    for (let i = strokes.length-1; i >= 0; i--){
+      const s = strokes[i];
+      if (s.type && SHAPE_TYPES.has(s.type) && hitTestShape(s, p, tol)) return s;
+    }
+    for (let i = media.length-1; i >= 0; i--){
+      if (pointInBBox(p, getMediaBBox(media[i]))) return media[i];
+    }
+    return null;
+  }
 
   // Precision eraser: true vector path-splitting. Points inside the eraser
   // circle (or segments passing through it) are removed; the remaining
@@ -517,18 +727,59 @@
   }
   function applyEraseAt(center, mode){
     const r = state.eraserRadius / camera.zoom;
+    // Shapes/nodes have no meaningful "path" to vector-split, so both eraser
+    // modes simply remove the whole shape when touched; only genuine
+    // freehand ink gets true vector path-splitting under the precision eraser.
     if (mode === 'stroke'){
-      strokes = strokes.filter(s => !strokeHitByCircle(s, center, r));
+      strokes = strokes.filter(s => {
+        if (s.type && SHAPE_TYPES.has(s.type)) return !hitTestShape(s, center, r + 2/camera.zoom);
+        return !strokeHitByCircle(s, center, r);
+      });
     } else {
       const next = [];
-      for (const s of strokes) { for (const part of splitStrokeByEraser(s, center, r)) next.push(part); }
+      for (const s of strokes){
+        if (s.type && SHAPE_TYPES.has(s.type)){
+          if (!hitTestShape(s, center, r + 2/camera.zoom)) next.push(s);
+        } else {
+          for (const part of splitStrokeByEraser(s, center, r)) next.push(part);
+        }
+      }
       strokes = next;
     }
+    connectors = connectors.filter(c => {
+      const from = findItemById(c.fromId), to = findItemById(c.toId);
+      if (!from || !to) return false;
+      const a = anchorPoint(from).center, b = anchorPoint(to).center;
+      return distToSegment(center, a, b) > r;
+    });
+    const beforeCount = media.length;
+    media = media.filter(m => {
+      const b = getMediaBBox(m);
+      const closestX = clamp(center.x, b.minX, b.maxX), closestY = clamp(center.y, b.minY, b.maxY);
+      return dist(center, {x:closestX,y:closestY}) > r;
+    });
+    pruneOrphanConnectors();
+  }
+  function pruneOrphanConnectors(){
+    connectors = connectors.filter(c => findItemById(c.fromId) && findItemById(c.toId));
   }
 
   // ---- history (undo/redo) -------------------------------------------------
+  // Snapshots cover strokes+shapes, media placement, and connectors so that
+  // moving/deleting any item type (not just freehand ink) is undoable.
   function snapshot(){
-    return strokes.map(s => ({ id: s.id, color: s.color, baseWidth: s.baseWidth, points: s.points.map(p => ({x:p.x,y:p.y,p:p.p})) }));
+    return {
+      strokes: strokes.map(s => ({ id:s.id, type:s.type, color:s.color, baseWidth:s.baseWidth, text:s.text,
+        points: s.points.map(p => ({x:p.x,y:p.y,p:p.p})) })),
+      media: media.map(m => ({ id:m.id, kind:m.kind, dataURL:m.dataURL, x:m.x, y:m.y, w:m.w, h:m.h })),
+      connectors: connectors.map(c => ({ id:c.id, fromId:c.fromId, toId:c.toId })),
+    };
+  }
+  function restoreSnapshot(snap){
+    strokes = snap.strokes;
+    media = snap.media;
+    connectors = snap.connectors;
+    for (const m of media) if (!mediaImageCache.has(m.id)) loadMediaImage(m);
   }
   function pushHistory(){
     history.push(snapshot());
@@ -538,14 +789,14 @@
   function undo(){
     if (!history.length) return;
     future.push(snapshot());
-    strokes = history.pop();
+    restoreSnapshot(history.pop());
     selectedIds.clear();
     requestRenderNow();
   }
   function redo(){
     if (!future.length) return;
     history.push(snapshot());
-    strokes = future.pop();
+    restoreSnapshot(future.pop());
     selectedIds.clear();
     requestRenderNow();
   }
@@ -558,71 +809,116 @@
   function startStroke(e){
     pushHistory();
     const p = screenToWorld(e.clientX, e.clientY);
-    currentStroke = { id: nextId++, color: state.color, baseWidth: state.baseWidth, points: [{x:p.x,y:p.y,p:normalizedPressure(e)}] };
+    const isHighlighter = state.tool === 'highlighter';
+    const pressure = isHighlighter ? 1 : normalizedPressure(e); // flat width for highlighter
+    currentStroke = { id: nextId++, type: isHighlighter ? 'highlighter' : 'stroke',
+      color: state.color, baseWidth: isHighlighter ? state.baseWidth*2.6 : state.baseWidth,
+      points: [{x:p.x,y:p.y,p:pressure}] };
     strokes.push(currentStroke);
     lastDrawPoint = p;
     requestRenderNow();
   }
   function moveStroke(e){
-  const minDist = 1.2 / camera.zoom; 
+  const minDist = 1.2 / camera.zoom;
+  const isHighlighter = currentStroke.type === 'highlighter';
   for (const ev of getEvents(e)){
     const p = screenToWorld(ev.clientX, ev.clientY);
     if (Math.hypot(p.x-lastDrawPoint.x, p.y-lastDrawPoint.y) < minDist) continue;
-    currentStroke.points.push({ x:p.x, y:p.y, p:normalizedPressure(ev) });
+    currentStroke.points.push({ x:p.x, y:p.y, p: isHighlighter ? 1 : normalizedPressure(ev) });
     lastDrawPoint = p;
   }
 
+  // Highlighter strokes are meant to stay exactly as drawn (underlining /
+  // highlighting text), so they're excluded from auto-snap entirely.
+  if (isHighlighter){ requestRenderNow(); return; }
+
   clearTimeout(snapTimer);
-  snapTimer = setTimeout(() => {
-    if (!currentStroke || currentStroke.points.length < 5) return;
-
-    const pts = currentStroke.points;
-    const start = pts[0];
-    const end = pts[pts.length - 1];
-
-    // Measure bounding box bounds
-    let minX = pts[0].x, maxX = pts[0].x, minY = pts[0].y, maxY = pts[0].y;
-    for (const p of pts) {
-      if (p.x < minX) minX = p.x;
-      if (p.x > maxX) maxX = p.x;
-      if (p.y < minY) minY = p.y;
-      if (p.y > maxY) maxY = p.y;
-    }
-
-    const width = maxX - minX;
-    const height = maxY - minY;
-    const bboxDiag = Math.hypot(width, height);
-    const endGap = Math.hypot(end.x - start.x, end.y - start.y);
-
-    // If start & end points meet within 45% of total size -> Snap Circle
-    if (endGap < bboxDiag * 0.45 && pts.length > 8) {
-      const centerX = minX + width / 2;
-      const centerY = minY + height / 2;
-      const radius = (width + height) / 4;
-      const circlePoints = [];
-      const numSegments = 40;
-
-      for (let i = 0; i <= numSegments; i++) {
-        const angle = (i / numSegments) * Math.PI * 2;
-        circlePoints.push({
-          x: centerX + radius * Math.cos(angle),
-          y: centerY + radius * Math.sin(angle),
-          p: start.p || 0.5
-        });
-      }
-      currentStroke.points = circlePoints;
-      showToast('Snapped to circle');
-    } else {
-      // Otherwise snap to straight line
-      currentStroke.points = [start, end];
-      showToast('Snapped to line');
-    }
-
-    requestRenderNow();
-  }, 600);
+  snapTimer = setTimeout(() => { snapCurrentStroke(); }, 600);
 
   requestRenderNow();
 }
+
+  // Auto-snap classifier for the freehand pen: recognizes a closed loop as
+  // a circle/ellipse, rectangle, or triangle (by corner count after RDP
+  // simplification), an open path as a straight line, and an open path with
+  // a sharp direction-reversal near one end as an arrow.
+  function rdpSimplify(points, epsilon){
+    if (points.length < 3) return points.slice();
+    let maxD = 0, idx = 0;
+    const first = points[0], last = points[points.length-1];
+    for (let i=1; i<points.length-1; i++){
+      const d = distToSegment(points[i], first, last);
+      if (d > maxD){ maxD = d; idx = i; }
+    }
+    if (maxD > epsilon){
+      const left = rdpSimplify(points.slice(0, idx+1), epsilon);
+      const right = rdpSimplify(points.slice(idx), epsilon);
+      return left.slice(0, -1).concat(right);
+    }
+    return [first, last];
+  }
+  function angleBetween(a, b, c){ // angle at point b, formed by a-b-c, radians
+    const v1 = {x:a.x-b.x, y:a.y-b.y}, v2 = {x:c.x-b.x, y:c.y-b.y};
+    const m1 = Math.hypot(v1.x,v1.y)||1, m2 = Math.hypot(v2.x,v2.y)||1;
+    const cos = clamp((v1.x*v2.x+v1.y*v2.y)/(m1*m2), -1, 1);
+    return Math.acos(cos);
+  }
+  function snapCurrentStroke(){
+    if (!currentStroke || currentStroke.points.length < 5) return;
+    const pts = currentStroke.points;
+    const start = pts[0], end = pts[pts.length-1];
+    let minX=pts[0].x, maxX=pts[0].x, minY=pts[0].y, maxY=pts[0].y;
+    for (const p of pts){ if(p.x<minX)minX=p.x; if(p.x>maxX)maxX=p.x; if(p.y<minY)minY=p.y; if(p.y>maxY)maxY=p.y; }
+    const width = maxX-minX, height = maxY-minY;
+    const bboxDiag = Math.hypot(width, height);
+    if (bboxDiag < 1e-6) return;
+    const endGap = Math.hypot(end.x-start.x, end.y-start.y);
+    const closed = endGap < bboxDiag*0.45 && pts.length > 8;
+
+    if (closed){
+      const simplified = rdpSimplify(pts, bboxDiag*0.055);
+      const corners = simplified.length - 1; // first===~last for a closed loop
+      if (corners === 3){
+        const v = simplified.slice(0,3);
+        currentStroke.type = 'triangle';
+        currentStroke.points = [{x:v[0].x,y:v[0].y}, {x:v[2].x,y:v[2].y}]; // stored as bbox-driving pair
+        // triangleVertices() derives the actual shape from the bbox, so
+        // just make sure the bbox spans the recognized corners:
+        const bx0 = Math.min(v[0].x,v[1].x,v[2].x), bx1 = Math.max(v[0].x,v[1].x,v[2].x);
+        const by0 = Math.min(v[0].y,v[1].y,v[2].y), by1 = Math.max(v[0].y,v[1].y,v[2].y);
+        currentStroke.points = [{x:bx0,y:by0},{x:bx1,y:by1}];
+        showToast('Snapped to triangle');
+      } else if (corners === 4){
+        currentStroke.type = 'rect';
+        currentStroke.points = [{x:minX,y:minY},{x:maxX,y:maxY}];
+        showToast('Snapped to rectangle');
+      } else {
+        const centerX = minX+width/2, centerY = minY+height/2;
+        currentStroke.type = 'ellipse';
+        currentStroke.points = [{x:centerX-width/2,y:centerY-height/2},{x:centerX+width/2,y:centerY+height/2}];
+        showToast('Snapped to ellipse');
+      }
+      currentStroke.baseWidth = state.baseWidth;
+    } else {
+      const simplified = rdpSimplify(pts, bboxDiag*0.035);
+      if (simplified.length === 3){
+        const seg1 = Math.hypot(simplified[1].x-simplified[0].x, simplified[1].y-simplified[0].y);
+        const seg2 = Math.hypot(simplified[2].x-simplified[1].x, simplified[2].y-simplified[1].y);
+        const ang = angleBetween(simplified[0], simplified[1], simplified[2]);
+        if (seg2 < seg1*0.55 && ang < Math.PI*0.75){
+          currentStroke.type = 'arrow';
+          currentStroke.points = [{x:simplified[0].x,y:simplified[0].y},{x:simplified[1].x,y:simplified[1].y}];
+          currentStroke.baseWidth = state.baseWidth;
+          showToast('Snapped to arrow');
+          requestRenderNow();
+          return;
+        }
+      }
+      currentStroke.points = [start, end];
+      showToast('Snapped to line');
+    }
+    requestRenderNow();
+  }
   function endStroke(){ 
   clearTimeout(snapTimer);
   currentStroke = null; 
@@ -643,13 +939,28 @@
   function endErase(){ erasing = null; }
 
   // ---- select tool --------------------------------------------------------
+  const RESIZE_HANDLE_PX = 10;
+  function mediaResizeHandleHit(p, m){
+    const b = getMediaBBox(m);
+    const tol = RESIZE_HANDLE_PX / camera.zoom;
+    return Math.abs(p.x-b.maxX) <= tol && Math.abs(p.y-b.maxY) <= tol;
+  }
   function startSelect(e){
     const p = screenToWorld(e.clientX, e.clientY);
-    const hit = hitTestStroke(p);
+    // Resize handle takes priority when exactly one media item is selected.
+    if (selectedIds.size === 1){
+      const only = media.find(m => selectedIds.has(m.id));
+      if (only && mediaResizeHandleHit(p, only)){
+        selectDrag = { lastWorld: p, historyPushed: false, resizingId: only.id };
+        requestRenderNow();
+        return;
+      }
+    }
+    const hit = hitTestItem(p);
     if (hit){
       if (!e.shiftKey && !selectedIds.has(hit.id)) selectedIds.clear();
       selectedIds.add(hit.id);
-      selectDrag = { lastWorld: p, historyPushed: false };
+      selectDrag = { lastWorld: p, historyPushed: false, resizingId: null };
     } else {
       if (!e.shiftKey) selectedIds.clear();
       rubberBand = { startWorld: p, curWorld: p };
@@ -658,11 +969,22 @@
   }
   function moveSelect(e){
     const p = screenToWorld(e.clientX, e.clientY);
+    if (selectDrag && selectDrag.resizingId != null){
+      const m = media.find(mm => mm.id === selectDrag.resizingId);
+      if (m){
+        if (!selectDrag.historyPushed){ pushHistory(); selectDrag.historyPushed = true; }
+        m.w = Math.max(20, p.x - m.x);
+        m.h = Math.max(20, p.y - m.y);
+      }
+      requestRenderNow();
+      return;
+    }
     if (selectDrag){
       const dx = p.x - selectDrag.lastWorld.x, dy = p.y - selectDrag.lastWorld.y;
       if (dx !== 0 || dy !== 0){
         if (!selectDrag.historyPushed){ pushHistory(); selectDrag.historyPushed = true; }
         for (const s of strokes) if (selectedIds.has(s.id)) for (const pt of s.points){ pt.x += dx; pt.y += dy; }
+        for (const m of media) if (selectedIds.has(m.id)){ m.x += dx; m.y += dy; }
       }
       selectDrag.lastWorld = p;
     } else if (rubberBand){
@@ -670,10 +992,97 @@
       const rect = normalizeRect(rubberBand.startWorld, rubberBand.curWorld);
       selectedIds.clear();
       for (const s of strokes) if (strokeIntersectsRect(s, rect)) selectedIds.add(s.id);
+      for (const m of media) if (itemIntersectsRect(m, rect)) selectedIds.add(m.id);
     }
     requestRenderNow();
   }
   function endSelect(){ selectDrag = null; rubberBand = null; requestRenderNow(); }
+
+  // ---- shape tools (rect/ellipse/triangle/arrow/node) ----------------------
+  // Excalidraw-style drag-to-create: click, drag to size, release to commit.
+  // Nodes are placed at a default size immediately (double-click to rename).
+  function startShapeDraft(e){
+    const p = screenToWorld(e.clientX, e.clientY);
+    shapeDraft = { type: state.tool, start: p, end: p };
+    requestRenderNow();
+  }
+  function moveShapeDraft(e){
+    if (!shapeDraft) return;
+    shapeDraft.end = screenToWorld(e.clientX, e.clientY);
+    requestRenderNow();
+  }
+  function commitShapeDraft(){
+    if (!shapeDraft) return;
+    const { type, start, end } = shapeDraft;
+    shapeDraft = null;
+    const w = Math.abs(end.x-start.x), h = Math.abs(end.y-start.y);
+    pushHistory();
+    if (type === 'node'){
+      const cx = start.x, cy = start.y;
+      const nw = Math.max(w, 140), nh = Math.max(h, 56);
+      const shape = { id: nextId++, type:'node', color: state.color, baseWidth: 2, text:'Idea',
+        points: [{x:cx,y:cy}, {x:cx+nw,y:cy+nh}] };
+      strokes.push(shape);
+      requestRenderNow();
+      return;
+    }
+    if (w < 3/camera.zoom && h < 3/camera.zoom && type !== 'arrow'){ requestRenderNow(); return; } // too small to matter
+    const shape = { id: nextId++, type, color: state.color, baseWidth: state.baseWidth,
+      points: [{x:start.x,y:start.y}, {x:end.x,y:end.y}] };
+    strokes.push(shape);
+    requestRenderNow();
+  }
+
+  // ---- mind-map node text editing -------------------------------------------
+  function openNodeEditor(node){
+    editingNodeId = node.id;
+    const b = getShapeBBox(node);
+    const tl = worldToScreen(b.minX, b.minY);
+    const br = worldToScreen(b.maxX, b.maxY);
+    const ed = document.getElementById('nodeEditor');
+    ed.style.display = 'block';
+    ed.style.left = tl.x + 'px';
+    ed.style.top = tl.y + (br.y-tl.y)/2 - 14 + 'px';
+    ed.style.width = (br.x-tl.x) + 'px';
+    ed.style.fontSize = Math.max(11, 15*camera.zoom) + 'px';
+    ed.value = node.text || '';
+    ed.focus();
+    ed.select();
+  }
+  function closeNodeEditor(commit){
+    const ed = document.getElementById('nodeEditor');
+    if (editingNodeId != null && commit){
+      const node = strokes.find(s => s.id === editingNodeId);
+      if (node) node.text = ed.value.slice(0, 80);
+    }
+    editingNodeId = null;
+    ed.style.display = 'none';
+    requestRenderNow();
+  }
+
+  // ---- connector tool -------------------------------------------------------
+  function startConnector(e){
+    const p = screenToWorld(e.clientX, e.clientY);
+    const hit = hitTestAnchorable(p);
+    if (hit) connectorDraft = { fromId: hit.id, curWorld: p };
+  }
+  function moveConnector(e){
+    if (!connectorDraft) return;
+    connectorDraft.curWorld = screenToWorld(e.clientX, e.clientY);
+    requestRenderNow();
+  }
+  function endConnector(e){
+    if (!connectorDraft) return;
+    const p = screenToWorld(e.clientX, e.clientY);
+    const hit = hitTestAnchorable(p);
+    if (hit && hit.id !== connectorDraft.fromId){
+      pushHistory();
+      connectors.push({ id: nextId++, fromId: connectorDraft.fromId, toId: hit.id });
+      showToast('Connector added');
+    }
+    connectorDraft = null;
+    requestRenderNow();
+  }
 
   // ---- panning ------------------------------------------------------------
   function startPan(e){
@@ -708,6 +1117,7 @@
   }
   function cancelActiveActions(){
     panState = null; currentStroke = null; erasing = null; selectDrag = null; rubberBand = null;
+    shapeDraft = null; connectorDraft = null;
   }
 
   // ---- rendering ------------------------------------------------------------
@@ -761,13 +1171,14 @@
 }
 
   // ---- Dynamic Grid & Render ----
-  function drawGrid(){
-    const theme = getThemeColors();
-    const topLeft = screenToWorld(0, 0);
-    const bottomRight = screenToWorld(window.innerWidth, window.innerHeight);
+  // Smart canvas templates: every renderer below repeats/scales automatically
+  // across the infinite workspace because it's driven off the current
+  // world-space viewport (topLeft/bottomRight), the same pattern the
+  // original blueprint grid used — panning/zooming "just works" for all of
+  // them with no special-casing.
+  function drawBlueprintGrid(theme, topLeft, bottomRight){
     const spacing = niceGridSpacing(camera.zoom, 90);
     const majorEvery = 5;
-    ctx.save();
     ctx.lineWidth = 1 / camera.zoom;
     const startI = Math.floor(topLeft.x / spacing);
     for (let i = startI; i*spacing < bottomRight.x + spacing; i++){
@@ -789,170 +1200,352 @@
       ctx.strokeStyle = theme.axisY;
       ctx.beginPath(); ctx.moveTo(topLeft.x, 0); ctx.lineTo(bottomRight.x, 0); ctx.stroke();
     }
+  }
+  function drawGraphPaper(theme, topLeft, bottomRight){
+    const spacing = niceGridSpacing(camera.zoom, 34);
+    ctx.lineWidth = 1 / camera.zoom;
+    ctx.strokeStyle = theme.gridMinor;
+    const startI = Math.floor(topLeft.x / spacing);
+    for (let i = startI; i*spacing < bottomRight.x + spacing; i++){
+      const x = i*spacing;
+      ctx.beginPath(); ctx.moveTo(x, topLeft.y); ctx.lineTo(x, bottomRight.y); ctx.stroke();
+    }
+    const startJ = Math.floor(topLeft.y / spacing);
+    for (let j = startJ; j*spacing < bottomRight.y + spacing; j++){
+      const y = j*spacing;
+      ctx.beginPath(); ctx.moveTo(topLeft.x, y); ctx.lineTo(bottomRight.x, y); ctx.stroke();
+    }
+  }
+  function drawDotGrid(theme, topLeft, bottomRight){
+    const spacing = niceGridSpacing(camera.zoom, 46);
+    const r = Math.max(0.9, 1.6/camera.zoom);
+    ctx.fillStyle = theme.gridMajor;
+    const startI = Math.floor(topLeft.x / spacing), startJ = Math.floor(topLeft.y / spacing);
+    for (let i = startI; i*spacing < bottomRight.x + spacing; i++){
+      for (let j = startJ; j*spacing < bottomRight.y + spacing; j++){
+        ctx.beginPath(); ctx.arc(i*spacing, j*spacing, r, 0, Math.PI*2); ctx.fill();
+      }
+    }
+  }
+  function drawLinedPaper(theme, topLeft, bottomRight){
+    const spacing = niceGridSpacing(camera.zoom, 50);
+    ctx.lineWidth = 1 / camera.zoom;
+    ctx.strokeStyle = theme.gridMajor;
+    const startJ = Math.floor(topLeft.y / spacing);
+    for (let j = startJ; j*spacing < bottomRight.y + spacing; j++){
+      const y = j*spacing;
+      ctx.beginPath(); ctx.moveTo(topLeft.x, y); ctx.lineTo(bottomRight.x, y); ctx.stroke();
+    }
+    ctx.strokeStyle = theme.axisX;
+    const marginX = Math.round(topLeft.x/spacing/4)*spacing*4 + spacing*2;
+    ctx.beginPath(); ctx.moveTo(marginX, topLeft.y); ctx.lineTo(marginX, bottomRight.y); ctx.stroke();
+  }
+  function drawCornell(theme, topLeft, bottomRight){
+    // Cue column on the left, a summary band along the bottom, notes ruled
+    // in between — repeated per "page band" so it tiles down an infinite
+    // scroll of notes the way a Cornell pad does per-sheet.
+    const pageH = 900, cueW = 220, summaryH = 130;
+    ctx.lineWidth = 1.4 / camera.zoom;
+    ctx.strokeStyle = theme.gridMajor;
+    const lineSpacing = 34;
+    const startPage = Math.floor(topLeft.y / pageH), endPage = Math.floor(bottomRight.y / pageH);
+    for (let pIdx = startPage; pIdx <= endPage; pIdx++){
+      const pageTop = pIdx*pageH;
+      ctx.beginPath(); ctx.moveTo(topLeft.x, pageTop); ctx.lineTo(bottomRight.x, pageTop); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(cueW, pageTop); ctx.lineTo(cueW, pageTop+pageH-summaryH); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(topLeft.x, pageTop+pageH-summaryH); ctx.lineTo(bottomRight.x, pageTop+pageH-summaryH); ctx.stroke();
+      ctx.strokeStyle = theme.gridMinor;
+      for (let y = pageTop+lineSpacing; y < pageTop+pageH-summaryH; y += lineSpacing){
+        ctx.beginPath(); ctx.moveTo(cueW, y); ctx.lineTo(bottomRight.x, y); ctx.stroke();
+      }
+      ctx.strokeStyle = theme.gridMajor;
+    }
+  }
+  function drawIsometric(theme, topLeft, bottomRight){
+    const spacing = niceGridSpacing(camera.zoom, 40);
+    ctx.lineWidth = 1 / camera.zoom;
+    ctx.strokeStyle = theme.gridMinor;
+    const w = bottomRight.x-topLeft.x, h = bottomRight.y-topLeft.y;
+    const diag = Math.hypot(w,h) + spacing*2;
+    for (const angle of [Math.PI/6, Math.PI-Math.PI/6]){
+      const dx = Math.cos(angle), dy = Math.sin(angle);
+      const perpX = -dy, perpY = dx;
+      const cx = (topLeft.x+bottomRight.x)/2, cy = (topLeft.y+bottomRight.y)/2;
+      const steps = Math.ceil(diag/spacing);
+      for (let i=-steps; i<=steps; i++){
+        const ox = cx + perpX*i*spacing, oy = cy + perpY*i*spacing;
+        ctx.beginPath();
+        ctx.moveTo(ox-dx*diag, oy-dy*diag);
+        ctx.lineTo(ox+dx*diag, oy+dy*diag);
+        ctx.stroke();
+      }
+    }
+    // vertical lines complete the classic isometric trio
+    const startI = Math.floor(topLeft.x/spacing);
+    for (let i=startI; i*spacing < bottomRight.x+spacing; i++){
+      ctx.beginPath(); ctx.moveTo(i*spacing, topLeft.y); ctx.lineTo(i*spacing, bottomRight.y); ctx.stroke();
+    }
+  }
+  function drawStaves(theme, topLeft, bottomRight){
+    const lineGap = 14, staveGap = 110, staveH = lineGap*4;
+    ctx.lineWidth = Math.max(1, 1.1/camera.zoom) ;
+    ctx.strokeStyle = theme.gridMajor;
+    const startStave = Math.floor(topLeft.y / staveGap), endStave = Math.floor(bottomRight.y / staveGap);
+    for (let s = startStave; s <= endStave; s++){
+      const top = s*staveGap;
+      for (let l=0; l<5; l++){
+        const y = top + l*lineGap;
+        ctx.beginPath(); ctx.moveTo(topLeft.x, y); ctx.lineTo(bottomRight.x, y); ctx.stroke();
+      }
+    }
+  }
+  const TEMPLATE_RENDERERS = {
+    grid: drawBlueprintGrid, dots: drawDotGrid, graph: drawGraphPaper, lined: drawLinedPaper,
+    cornell: drawCornell, isometric: drawIsometric, staves: drawStaves, blank: null,
+  };
+  function drawGrid(){
+    const theme = getThemeColors();
+    const topLeft = screenToWorld(0, 0);
+    const bottomRight = screenToWorld(window.innerWidth, window.innerHeight);
+    const renderer = TEMPLATE_RENDERERS[state.template] || drawBlueprintGrid;
+    if (!renderer) return;
+    ctx.save();
+    renderer(theme, topLeft, bottomRight);
     ctx.restore();
   }
 
-  // ---- Smooth Curve Drawing ----
-    function drawStroke(targetCtx, stroke) {
-        // 1. Text rendering logic
-        if (stroke.type === 'text') {
-          if (!stroke.text) return;
-          targetCtx.save();
-          targetCtx.fillStyle = getStrokeColor(stroke.color);
-          const size = stroke.fontSize || 24;
-          targetCtx.font = `${size}px var(--font-ui)`;
-          targetCtx.textBaseline = 'top';
-    
-          const lines = stroke.text.split('\n');
-          const lineHeight = size * 1.2;
-          for (let i = 0; i < lines.length; i++) {
-            targetCtx.fillText(lines[i], stroke.x, stroke.y + (i * lineHeight));
-          }
+  // ---- shape rendering (rect/ellipse/triangle/arrow/node) -------------------
+  function drawShapeItem(targetCtx, shape){
+    const b = getShapeBBox(shape);
+    targetCtx.save();
+    targetCtx.strokeStyle = getStrokeColor(shape.color);
+    targetCtx.lineWidth = Math.max(1, shape.baseWidth || 2);
+    targetCtx.lineJoin = 'round'; targetCtx.lineCap = 'round';
+    switch(shape.type){
+      case 'rect':
+        targetCtx.strokeRect(b.minX, b.minY, b.maxX-b.minX, b.maxY-b.minY);
+        break;
+      case 'ellipse': {
+        const cx=(b.minX+b.maxX)/2, cy=(b.minY+b.maxY)/2, rx=(b.maxX-b.minX)/2, ry=(b.maxY-b.minY)/2;
+        targetCtx.beginPath(); targetCtx.ellipse(cx, cy, Math.max(rx,0.01), Math.max(ry,0.01), 0, 0, Math.PI*2); targetCtx.stroke();
+        break;
+      }
+      case 'triangle': {
+        const [a,c,d] = triangleVertices(shape);
+        targetCtx.beginPath(); targetCtx.moveTo(a.x,a.y); targetCtx.lineTo(c.x,c.y); targetCtx.lineTo(d.x,d.y); targetCtx.closePath(); targetCtx.stroke();
+        break;
+      }
+      case 'arrow': {
+        const [p0,p1] = shape.points;
+        targetCtx.beginPath(); targetCtx.moveTo(p0.x,p0.y); targetCtx.lineTo(p1.x,p1.y); targetCtx.stroke();
+        drawArrowHead(targetCtx, p0, p1, shape.baseWidth || 2);
+        break;
+      }
+      case 'node': {
+        const rx = Math.min(14, (b.maxY-b.minY)/2);
+        targetCtx.fillStyle = isDarkMode ? 'rgba(53,224,198,0.14)' : 'rgba(61,92,255,0.08)';
+        roundRectPath(targetCtx, b.minX, b.minY, b.maxX-b.minX, b.maxY-b.minY, rx);
+        targetCtx.fill(); targetCtx.stroke();
+        targetCtx.fillStyle = getStrokeColor(shape.color);
+        targetCtx.font = Math.max(11, 15) + 'px Space Grotesk, sans-serif';
+        targetCtx.textAlign = 'center'; targetCtx.textBaseline = 'middle';
+        const cx=(b.minX+b.maxX)/2, cy=(b.minY+b.maxY)/2;
+        if (shape.id !== editingNodeId){
+          targetCtx.save(); targetCtx.scale(1,1);
+          wrapText(targetCtx, shape.text || 'Idea', cx, cy, (b.maxX-b.minX)-16, 16);
           targetCtx.restore();
-          return;
         }
-    
-        // 2. Freehand path rendering logic
-        const pts = stroke.points;
-        if (!pts || !pts.length) return;
-    
-        targetCtx.strokeStyle = getStrokeColor(stroke.color);
-        targetCtx.fillStyle = stroke.color;
-        targetCtx.lineCap = 'round';
-        targetCtx.lineJoin = 'round';
-    
-        // Single point (dot)
-        if (pts.length === 1) {
-          const r = pressureToWidth(stroke, pts[0].p) / 2;
-          targetCtx.beginPath();
-          targetCtx.arc(pts[0].x, pts[0].y, r, 0, Math.PI * 2);
-          targetCtx.fill();
-          return;
-        }
-    
-        // Two points (simple straight line)
-        if (pts.length === 2) {
-          targetCtx.lineWidth = (pressureToWidth(stroke, pts[0].p) + pressureToWidth(stroke, pts[1].p)) / 2;
-          targetCtx.beginPath();
-          targetCtx.moveTo(pts[0].x, pts[0].y);
-          targetCtx.lineTo(pts[1].x, pts[1].y);
-          targetCtx.stroke();
-          return;
-        }
-    
-        // 3+ points: Draw a smooth, single quadratic curve path
-        const avgPressure = pts.reduce((sum, pt) => sum + pt.p, 0) / pts.length;
-        targetCtx.lineWidth = pressureToWidth(stroke, avgPressure);
-    
-        targetCtx.beginPath();
-        targetCtx.moveTo(pts[0].x, pts[0].y);
-    
-        for (let i = 1; i < pts.length - 1; i++) {
-          const midX = (pts[i].x + pts[i + 1].x) / 2;
-          const midY = (pts[i].y + pts[i + 1].y) / 2;
-          targetCtx.quadraticCurveTo(pts[i].x, pts[i].y, midX, midY);
-        }
-    
-        // Connect to the final point
-        targetCtx.lineTo(pts[pts.length - 1].x, pts[pts.length - 1].y);
-        targetCtx.stroke();
+        break;
       }
+    }
+    targetCtx.restore();
+  }
+  function roundRectPath(c, x, y, w, h, r){
+    r = Math.min(r, w/2, h/2);
+    c.beginPath();
+    c.moveTo(x+r,y); c.arcTo(x+w,y,x+w,y+h,r); c.arcTo(x+w,y+h,x,y+h,r); c.arcTo(x,y+h,x,y,r); c.arcTo(x,y,x+w,y,r); c.closePath();
+  }
+  function wrapText(c, text, cx, cy, maxWidth, lineHeight){
+    const words = String(text).split(/\s+/);
+    const lines = []; let line = '';
+    for (const w of words){
+      const test = line ? line+' '+w : w;
+      if (c.measureText(test).width > maxWidth && line){ lines.push(line); line = w; } else line = test;
+    }
+    if (line) lines.push(line);
+    const startY = cy - ((lines.length-1)*lineHeight)/2;
+    lines.slice(0,4).forEach((l,i) => c.fillText(l, cx, startY + i*lineHeight));
+  }
+  function drawArrowHead(c, from, to, width){
+    const ang = Math.atan2(to.y-from.y, to.x-from.x);
+    const size = Math.max(10, width*2.4);
+    const spread = Math.PI/7;
+    c.beginPath();
+    c.moveTo(to.x, to.y);
+    c.lineTo(to.x - size*Math.cos(ang-spread), to.y - size*Math.sin(ang-spread));
+    c.moveTo(to.x, to.y);
+    c.lineTo(to.x - size*Math.cos(ang+spread), to.y - size*Math.sin(ang+spread));
+    c.stroke();
+  }
 
-  function drawSelectionOutline(stroke) {
-      const b = stroke.type === 'text' ? getTextBBox(stroke) : getStrokeBBox(stroke);
-      const pad = 6 / camera.zoom;
-      const x = b.minX - pad, y = b.minY - pad, w = (b.maxX - b.minX) + pad * 2, h = (b.maxY - b.minY) + pad * 2;
-      ctx.save();
-      ctx.strokeStyle = 'rgba(53,224,198,0.9)';
-      ctx.lineWidth = 1.5 / camera.zoom;
-      ctx.setLineDash([5 / camera.zoom, 4 / camera.zoom]);
-      ctx.strokeRect(x, y, w, h);
-      ctx.setLineDash([]);
-      const t = 8 / camera.zoom;
-      ctx.lineWidth = 2 / camera.zoom;
-      const corners = [[x, y, 1, 1], [x + w, y, -1, 1], [x, y + h, 1, -1], [x + w, y + h, -1, -1]];
-      for (const [cx, cy, sx, sy] of corners) {
-        ctx.beginPath();
-        ctx.moveTo(cx, cy + t * sy); ctx.lineTo(cx, cy); ctx.lineTo(cx + t * sx, cy);
-        ctx.stroke();
-      }
-      ctx.restore();
+  // ---- media (image/PDF page) rendering --------------------------------
+  function drawMediaItem(targetCtx, item){
+    const img = mediaImageCache.get(item.id);
+    targetCtx.save();
+    if (!img || !img.complete || !img.naturalWidth){
+      targetCtx.fillStyle = 'rgba(120,124,132,0.18)';
+      targetCtx.fillRect(item.x, item.y, item.w, item.h);
+    } else {
+      targetCtx.drawImage(img, item.x, item.y, item.w, item.h);
+    }
+    if (item.kind === 'pdf'){
+      targetCtx.strokeStyle = 'rgba(0,0,0,0.18)';
+      targetCtx.lineWidth = 1/camera.zoom;
+      targetCtx.strokeRect(item.x, item.y, item.w, item.h);
+    }
+    targetCtx.restore();
+  }
+  function drawMediaSelectionUI(item){
+    const pad = 6/camera.zoom;
+    ctx.save();
+    ctx.strokeStyle = 'rgba(53,224,198,0.9)';
+    ctx.lineWidth = 1.5/camera.zoom;
+    ctx.setLineDash([5/camera.zoom, 4/camera.zoom]);
+    ctx.strokeRect(item.x-pad, item.y-pad, item.w+pad*2, item.h+pad*2);
+    ctx.setLineDash([]);
+    if (selectedIds.size === 1){
+      const r = 5/camera.zoom;
+      ctx.fillStyle = 'var(--signal)';
+      ctx.fillStyle = '#35E0C6';
+      ctx.beginPath(); ctx.arc(item.x+item.w, item.y+item.h, r, 0, Math.PI*2); ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  // ---- connectors: recomputed live from current shape/media geometry, so
+  // moving an anchored shape with the select tool keeps the line attached
+  // with no extra bookkeeping. ------------------------------------------
+  function clipToBBox(from, to, b){
+    // Walk from `from` toward `to`, stop where the segment crosses the bbox edge.
+    const cx=(b.minX+b.maxX)/2, cy=(b.minY+b.maxY)/2;
+    const dx = from.x-cx, dy = from.y-cy;
+    const hw=(b.maxX-b.minX)/2||0.01, hh=(b.maxY-b.minY)/2||0.01;
+    const scale = 1/Math.max(Math.abs(dx)/hw, Math.abs(dy)/hh, 1e-6);
+    return { x: cx+dx*Math.min(scale,1), y: cy+dy*Math.min(scale,1) };
+  }
+  function anchorPoint(item){
+    const b = getItemBBox(item);
+    return { center: {x:(b.minX+b.maxX)/2, y:(b.minY+b.maxY)/2}, bbox: b };
+  }
+  function drawConnectorLine(targetCtx, fromItem, toItem, previewTo){
+    const a = anchorPoint(fromItem);
+    const bAnchor = previewTo ? { center: previewTo, bbox: {minX:previewTo.x,minY:previewTo.y,maxX:previewTo.x,maxY:previewTo.y} } : anchorPoint(toItem);
+    const start = clipToBBox(a.center, bAnchor.center, a.bbox);
+    const end = previewTo ? previewTo : clipToBBox(bAnchor.center, a.center, bAnchor.bbox);
+    targetCtx.save();
+    targetCtx.strokeStyle = isDarkMode ? 'rgba(199,201,209,0.7)' : 'rgba(20,21,26,0.55)';
+    targetCtx.lineWidth = Math.max(1, 2/camera.zoom);
+    targetCtx.setLineDash(previewTo ? [5/camera.zoom, 4/camera.zoom] : []);
+    targetCtx.beginPath(); targetCtx.moveTo(start.x, start.y); targetCtx.lineTo(end.x, end.y); targetCtx.stroke();
+    targetCtx.setLineDash([]);
+    drawArrowHead(targetCtx, start, end, 2);
+    targetCtx.restore();
+  }
+  function drawConnectors(targetCtx){
+    for (const c of connectors){
+      const from = findItemById(c.fromId), to = findItemById(c.toId);
+      if (!from || !to) continue;
+      drawConnectorLine(targetCtx, from, to, null);
+    }
+    if (connectorDraft){
+      const from = findItemById(connectorDraft.fromId);
+      if (from) drawConnectorLine(targetCtx, from, null, connectorDraft.curWorld);
+    }
+  }
+  function drawShapeDraftPreview(targetCtx){
+    if (!shapeDraft) return;
+    const { type, start, end } = shapeDraft;
+    if (type === 'node') return;
+    const fake = { id:-1, type, color: state.color, baseWidth: state.baseWidth,
+      points: [{x:start.x,y:start.y},{x:end.x,y:end.y}] };
+    targetCtx.save(); targetCtx.globalAlpha = 0.75;
+    drawShapeItem(targetCtx, fake);
+    targetCtx.restore();
+  }
+
+  // ---- Smooth Curve Drawing ----
+  function drawStroke(targetCtx, stroke) {
+    if (stroke.type && SHAPE_TYPES.has(stroke.type)){ drawShapeItem(targetCtx, stroke); return; }
+    const pts = stroke.points;
+    if (!pts || !pts.length) return;
+
+    const isHighlighter = stroke.type === 'highlighter';
+    targetCtx.save();
+    if (isHighlighter){
+      targetCtx.globalAlpha = isDarkMode ? 0.35 : 0.42;
+      targetCtx.globalCompositeOperation = isDarkMode ? 'lighter' : 'multiply';
     }
 
-    function spawnTextEditor(worldPos, existingStroke = null) {
-      const input = document.createElement('textarea');
-      input.className = 'canvas-text-input';
-      
-      const initialText = existingStroke ? existingStroke.text : '';
-      const fontSize = existingStroke ? (existingStroke.fontSize || 24) : (state.baseWidth * 4);
-      
-      input.value = initialText;
-      input.style.color = getStrokeColor(existingStroke ? existingStroke.color : state.color);
-      
-      function positionInput() {
-        const pos = existingStroke ? worldToScreen(existingStroke.x, existingStroke.y) : worldToScreen(worldPos.x, worldPos.y);
-        const screenFontSize = fontSize * camera.zoom;
-        input.style.left = `${pos.x}px`;
-        input.style.top = `${pos.y}px`;
-        input.style.fontSize = `${screenFontSize}px`;
-      }
-      
-      positionInput();
-      document.body.appendChild(input);
-      
-      // Auto-resize textarea width/height dynamically
-      function autoResize() {
-        input.style.width = 'auto';
-        input.style.height = 'auto';
-        input.style.width = `${Math.max(60, input.scrollHeight + 20)}px`;
-        input.style.height = `${input.scrollHeight}px`;
-      }
-      
-      autoResize();
-      input.focus();
-      
-      let committed = false;
-      function commit() {
-        if (committed) return;
-        committed = true;
-        const textVal = input.value.trim();
-        
-        if (textVal) {
-          pushHistory();
-          if (existingStroke) {
-            existingStroke.text = input.value;
-          } else {
-            strokes.push({
-              id: nextId++,
-              type: 'text',
-              x: worldPos.x,
-              y: worldPos.y,
-              text: input.value,
-              color: state.color,
-              fontSize: fontSize
-            });
-          }
-        } else if (existingStroke) {
-          pushHistory();
-          strokes = strokes.filter(s => s.id !== existingStroke.id);
-        }
-        
-        input.remove();
-        window.removeEventListener('resize', positionInput);
-        requestRenderNow();
-      }
-      
-      input.addEventListener('input', autoResize);
-      input.addEventListener('blur', commit);
-      input.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
-          commit();
-        }
-      });
-    }
+    targetCtx.strokeStyle = getStrokeColor(stroke.color);
+    targetCtx.fillStyle = stroke.color;
+    targetCtx.lineCap = 'round';
+    targetCtx.lineJoin = 'round';
 
-  
-  
+    if (pts.length === 1) {
+      // Single point (dot)
+      const r = pressureToWidth(stroke, pts[0].p) / 2;
+      targetCtx.beginPath();
+      targetCtx.arc(pts[0].x, pts[0].y, r, 0, Math.PI * 2);
+      targetCtx.fill();
+    } else if (pts.length === 2) {
+      // Two points (simple straight line)
+      targetCtx.lineWidth = (pressureToWidth(stroke, pts[0].p) + pressureToWidth(stroke, pts[1].p)) / 2;
+      targetCtx.beginPath();
+      targetCtx.moveTo(pts[0].x, pts[0].y);
+      targetCtx.lineTo(pts[1].x, pts[1].y);
+      targetCtx.stroke();
+    } else {
+      // 3+ points: Draw a smooth, single quadratic curve path
+      const avgPressure = pts.reduce((sum, pt) => sum + pt.p, 0) / pts.length;
+      targetCtx.lineWidth = pressureToWidth(stroke, avgPressure);
+
+      targetCtx.beginPath();
+      targetCtx.moveTo(pts[0].x, pts[0].y);
+
+      for (let i = 1; i < pts.length - 1; i++) {
+        const midX = (pts[i].x + pts[i + 1].x) / 2;
+        const midY = (pts[i].y + pts[i + 1].y) / 2;
+        // Use the raw point as control point, curve toward midPoint
+        targetCtx.quadraticCurveTo(pts[i].x, pts[i].y, midX, midY);
+      }
+
+      // Connect to the final point
+      targetCtx.lineTo(pts[pts.length - 1].x, pts[pts.length - 1].y);
+      targetCtx.stroke();
+    }
+    targetCtx.restore();
+  }
+
+  function drawSelectionOutline(stroke){
+    const b = getStrokeBBox(stroke);
+    const pad = 6 / camera.zoom;
+    const x = b.minX-pad, y = b.minY-pad, w = (b.maxX-b.minX)+pad*2, h = (b.maxY-b.minY)+pad*2;
+    ctx.save();
+    ctx.strokeStyle = 'rgba(53,224,198,0.9)';
+    ctx.lineWidth = 1.5 / camera.zoom;
+    ctx.setLineDash([5/camera.zoom, 4/camera.zoom]);
+    ctx.strokeRect(x, y, w, h);
+    ctx.setLineDash([]);
+    const t = 8 / camera.zoom;
+    ctx.lineWidth = 2 / camera.zoom;
+    const corners = [[x,y,1,1],[x+w,y,-1,1],[x,y+h,1,-1],[x+w,y+h,-1,-1]];
+    for (const [cx,cy,sx,sy] of corners){
+      ctx.beginPath();
+      ctx.moveTo(cx, cy+t*sy); ctx.lineTo(cx, cy); ctx.lineTo(cx+t*sx, cy);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
   function drawRubberBand(){
     const r = normalizeRect(rubberBand.startWorld, rubberBand.curWorld);
     ctx.save();
@@ -985,8 +1578,12 @@
 
     ctx.setTransform(dpr*camera.zoom, 0, 0, dpr*camera.zoom, dpr*camera.panX, dpr*camera.panY);
     drawGrid();
-    for (const s of strokes) drawStroke(ctx, s);
+    for (const m of media) drawMediaItem(ctx, m);          // raster layer (PDF pages / images) sits under ink
+    drawConnectors(ctx);                                    // connectors under shapes/ink, above media
+    for (const s of strokes) drawStroke(ctx, s);            // freehand ink + shapes on top
+    drawShapeDraftPreview(ctx);
     for (const s of strokes) if (selectedIds.has(s.id)) drawSelectionOutline(s);
+    for (const m of media) if (selectedIds.has(m.id)) drawMediaSelectionUI(m);
     if (rubberBand) drawRubberBand();
 
     ctx.setTransform(dpr,0,0,dpr,0,0);
@@ -1027,18 +1624,24 @@
 
   // ---- cursor / tool switching --------------------------------------------
   function updateCursorForTool(){
+    canvas.classList.remove('resize-cursor');
     if (spaceDown){ canvas.style.cursor = 'grab'; return; }
     switch(state.tool){
-      case 'pen': canvas.style.cursor = 'crosshair'; break;
+      case 'pen': case 'highlighter': canvas.style.cursor = 'crosshair'; break;
       case 'eraser-stroke':
       case 'eraser-precision': canvas.style.cursor = 'none'; break;
       case 'hand': canvas.style.cursor = 'grab'; break;
       case 'select': canvas.style.cursor = 'default'; break;
+      case 'connector': canvas.style.cursor = 'crosshair'; break;
+      default: canvas.style.cursor = SHAPE_TYPES.has(state.tool) ? 'crosshair' : 'default';
     }
   }
   function setTool(name){
+    if (editingNodeId != null) closeNodeEditor(true);
     state.tool = name;
     document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.tool === name));
+    const shapeFlyoutToggle = document.getElementById('shapeFlyoutToggle');
+    if (shapeFlyoutToggle) shapeFlyoutToggle.classList.toggle('active', SHAPE_TYPES.has(name));
     if (name === 'eraser-stroke' || name === 'eraser-precision'){
       sizeLabel.textContent = 'Eraser size';
       sizeSlider.min = 4; sizeSlider.max = 100; sizeSlider.value = state.eraserRadius;
@@ -1072,19 +1675,12 @@
     if (wantsPan){ startPan(e); return; }
 
     if (e.button === 0){
-      if (state.tool === 'pen') startStroke(e);
+      if (state.tool === 'pen' || state.tool === 'highlighter') startStroke(e);
       else if (state.tool === 'eraser-stroke') startErase(e, 'stroke');
       else if (state.tool === 'eraser-precision') startErase(e, 'precision');
       else if (state.tool === 'select') startSelect(e);
-      else if (state.tool === 'text') {
-        const p = screenToWorld(e.clientX, e.clientY);
-        const hit = hitTestStroke(p);
-        if (hit && hit.type === 'text') {
-          spawnTextEditor(p, hit);
-        } else {
-          spawnTextEditor(p);
-        }
-      }
+      else if (SHAPE_TYPES.has(state.tool)) startShapeDraft(e);
+      else if (state.tool === 'connector') startConnector(e);
     }
   });
 
@@ -1097,6 +1693,13 @@
     if (currentStroke){ moveStroke(e); return; }
     if (erasing){ moveErase(e); return; }
     if (selectDrag || rubberBand){ moveSelect(e); return; }
+    if (shapeDraft){ moveShapeDraft(e); return; }
+    if (connectorDraft){ moveConnector(e); return; }
+    if (state.tool === 'select' && selectedIds.size === 1){
+      const only = media.find(m => selectedIds.has(m.id));
+      const p = screenToWorld(e.clientX, e.clientY);
+      canvas.classList.toggle('resize-cursor', !!(only && mediaResizeHandleHit(p, only)));
+    }
     requestRenderNow(); // keep eraser-radius preview & coord readout live even when idle
   });
 
@@ -1107,13 +1710,32 @@
     if (currentStroke) endStroke();
     if (erasing) endErase();
     if (selectDrag || rubberBand) endSelect();
+    if (shapeDraft) commitShapeDraft();
+    if (connectorDraft) endConnector(e);
     try { canvas.releasePointerCapture(e.pointerId); } catch(err){}
     requestRenderNow();
-    localStorage.setItem('infinite-canvas-save', JSON.stringify(strokes)); // added for local memory
+    saveLocalStrokes(); // added for local memory
+    for (const id of selectedIds){
+      const m = media.find(mm => mm.id === id);
+      if (m) persistMediaItem(m);
+    }
   }
   canvas.addEventListener('pointerup', onPointerEnd);
   canvas.addEventListener('pointercancel', onPointerEnd);
   canvas.addEventListener('pointerleave', () => { lastPointerScreen = null; requestRenderNow(); });
+
+  canvas.addEventListener('dblclick', e => {
+    const p = screenToWorld(e.clientX, e.clientY);
+    const hit = hitTestItem(p);
+    if (hit && hit.type === 'node'){ openNodeEditor(hit); }
+  });
+  const nodeEditorEl = document.getElementById('nodeEditor');
+  nodeEditorEl.addEventListener('blur', () => closeNodeEditor(true));
+  nodeEditorEl.addEventListener('keydown', e => {
+    e.stopPropagation();
+    if (e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); closeNodeEditor(true); }
+    else if (e.key === 'Escape'){ e.preventDefault(); closeNodeEditor(false); }
+  });
 
   canvas.addEventListener('wheel', e => {
     e.preventDefault();
@@ -1147,7 +1769,11 @@
       if (selectedIds.size){
         pushHistory();
         strokes = strokes.filter(s => !selectedIds.has(s.id));
+        for (const m of media) if (selectedIds.has(m.id)) idbDeleteMedia(m.id);
+        media = media.filter(m => !selectedIds.has(m.id));
+        pruneOrphanConnectors();
         selectedIds.clear();
+        saveLocalStrokes();
         requestRenderNow();
         e.preventDefault();
       }
@@ -1155,11 +1781,17 @@
     }
     switch(e.key.toLowerCase()){
       case 'p': setTool('pen'); break;
+      case 'm': setTool('highlighter'); break;
       case 'e': setTool('eraser-stroke'); break;
       case 'x': setTool('eraser-precision'); break;
       case 'h': setTool('hand'); break;
       case 'v': case 's': setTool('select'); break;
-      case 't': setTool('text'); break;
+      case 'r': setTool('rect'); break;
+      case 'o': setTool('ellipse'); break;
+      case 't': setTool('triangle'); break;
+      case 'a': setTool('arrow'); break;
+      case 'n': setTool('node'); break;
+      case 'c': setTool('connector'); break;
       case '0': resetView(); break;
     }
   });
@@ -1196,38 +1828,197 @@
   // clear button script
   document.getElementById('clearCanvasBtn').addEventListener('click', () => {
     if (confirm('Are you sure you want to clear the entire canvas?')) {
-      strokes = [];
+      strokes = []; connectors = [];
+      for (const m of media) idbDeleteMedia(m.id);
+      media = []; mediaImageCache.clear();
       localStorage.removeItem('infinite-canvas-save');
+      localStorage.removeItem('infinite-canvas-connectors');
       requestRenderNow();
       showToast('Canvas cleared');
     }
   });
 
-  // save/load logic
+  // ---- PDF & image import (drag-and-drop + Import button) -------------------
+  if (window.pdfjsLib){
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  }
+  function addMediaItem(kind, dataURL, x, y, w, h){
+    const item = { id: nextId++, kind, dataURL, x, y, w, h };
+    media.push(item);
+    loadMediaImage(item);
+    persistMediaItem(item);
+    requestRenderNow();
+    return item;
+  }
+  function fileToDataURL(file){
+    return new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(r.result);
+      r.onerror = reject;
+      r.readAsDataURL(file);
+    });
+  }
+  async function importImageFile(file, at){
+    const dataURL = await fileToDataURL(file);
+    const img = await new Promise((resolve, reject) => {
+      const im = new Image();
+      im.onload = () => resolve(im);
+      im.onerror = reject;
+      im.src = dataURL;
+    });
+    const maxW = 420;
+    const w = Math.min(maxW, img.naturalWidth || maxW);
+    const h = w * ((img.naturalHeight || w) / (img.naturalWidth || w));
+    addMediaItem('image', dataURL, at.x - w/2, at.y - h/2, w, h);
+  }
+  async function importPdfFile(file, at){
+    if (!window.pdfjsLib){ showToast('PDF support unavailable offline'); return; }
+    const buf = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+    const renderScale = 2; // rasterize at 2x for crisp zoomed-in annotation
+    let cy = at.y;
+    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++){
+      const page = await pdf.getPage(pageNum);
+      const viewport = page.getViewport({ scale: renderScale });
+      const off = document.createElement('canvas');
+      off.width = viewport.width; off.height = viewport.height;
+      await page.render({ canvasContext: off.getContext('2d'), viewport }).promise;
+      const dataURL = off.toDataURL('image/png');
+      const worldW = 480, worldH = worldW * (viewport.height / viewport.width);
+      addMediaItem('pdf', dataURL, at.x, cy, worldW, worldH);
+      cy += worldH + 36;
+    }
+  }
+  async function handleImportFiles(fileList, screenPoint){
+    const world = screenPoint ? screenToWorld(screenPoint.x, screenPoint.y) : screenToWorld(window.innerWidth/2, window.innerHeight/2);
+    pushHistory();
+    let cursor = { x: world.x, y: world.y };
+    for (const file of fileList){
+      try {
+        if (file.type === 'application/pdf' || /\.pdf$/i.test(file.name)){
+          await importPdfFile(file, cursor);
+          showToast('PDF imported — draw or highlight over it');
+        } else if (file.type.startsWith('image/')){
+          await importImageFile(file, cursor);
+          showToast('Image imported');
+        } else {
+          showToast('Unsupported file: ' + file.name);
+          continue;
+        }
+      } catch (err){
+        showToast('Could not import ' + file.name);
+      }
+      cursor = { x: cursor.x + 70, y: cursor.y + 70 };
+    }
+  }
 
-  // Save to JSON File
-  document.getElementById('saveFileBtn').addEventListener('click', () => {
-    if (!strokes.length) { showToast('Nothing to save yet'); return; }
-    const data = JSON.stringify(strokes);
+  document.getElementById('importMediaBtn').addEventListener('click', () => document.getElementById('mediaInput').click());
+  document.getElementById('mediaInput').addEventListener('change', e => {
+    if (e.target.files && e.target.files.length) handleImportFiles(e.target.files, null);
+    e.target.value = '';
+  });
+
+  let dragDepth = 0;
+  const dropOverlay = document.getElementById('dropOverlay');
+  window.addEventListener('dragover', e => { e.preventDefault(); });
+  window.addEventListener('dragenter', e => {
+    if (!e.dataTransfer || !e.dataTransfer.types.includes('Files')) return;
+    dragDepth++; dropOverlay.classList.add('show');
+  });
+  window.addEventListener('dragleave', () => {
+    dragDepth = Math.max(0, dragDepth-1);
+    if (dragDepth === 0) dropOverlay.classList.remove('show');
+  });
+  window.addEventListener('drop', e => {
+    e.preventDefault();
+    dragDepth = 0; dropOverlay.classList.remove('show');
+    if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length){
+      handleImportFiles(e.dataTransfer.files, { x:e.clientX, y:e.clientY });
+    }
+  });
+
+  // save/load logic
+  // Whole-scene export now includes shapes (they live inside `strokes`),
+  // media (images/PDF pages, dataURLs inlined so the file is fully
+  // self-contained/portable) and connectors. Old save files that are just a
+  // bare strokes array (from before this update) still load fine.
+  function sceneToJSON(){
+    return JSON.stringify({ version:2, strokes, media, connectors });
+  }
+  function applyLoadedScene(parsed){
+    if (Array.isArray(parsed)){ // legacy: bare strokes array
+      strokes = parsed; media = []; connectors = [];
+    } else {
+      strokes = parsed.strokes || [];
+      media = parsed.media || [];
+      connectors = parsed.connectors || [];
+    }
+    mediaImageCache.clear();
+    for (const m of media){ loadMediaImage(m); persistMediaItem(m); if (m.id >= nextId) nextId = m.id+1; }
+    for (const s of strokes) if (s.id >= nextId) nextId = s.id+1;
+    saveLocalStrokes();
+  }
+
+  async function saveToDisk(){
+    if (!strokes.length && !media.length){ showToast('Nothing to save yet'); return; }
+    const data = sceneToJSON();
+    // File System Access API: lets the user pick a real folder/file on disk,
+    // with silent re-save to the same handle on subsequent saves. Falls back
+    // to the classic anchor-download flow on browsers that lack it (Firefox,
+    // Safari) so nothing regresses there.
+    if (window.showSaveFilePicker){
+      try {
+        const handle = lastSaveHandle || await window.showSaveFilePicker({
+          suggestedName: 'my-drawing.json',
+          types: [{ description:'Canvas file', accept: {'application/json':['.json']} }]
+        });
+        lastSaveHandle = handle;
+        const writable = await handle.createWritable();
+        await writable.write(data);
+        await writable.close();
+        showToast('Saved to disk');
+        return;
+      } catch (err){
+        if (err && err.name === 'AbortError') return; // user cancelled the picker
+        // fall through to download fallback on any other failure
+      }
+    }
     const blob = new Blob([data], {type: 'application/json'});
     const url = URL.createObjectURL(blob);
     triggerDownload(url, 'my-drawing.json');
     showToast('File saved');
-  });
+  }
+  let lastSaveHandle = null;
+  document.getElementById('saveFileBtn').addEventListener('click', saveToDisk);
 
-  // Load from JSON File
-  document.getElementById('loadFileBtn').addEventListener('click', () => {
+  async function openFromDisk(){
+    if (window.showOpenFilePicker){
+      try {
+        const [handle] = await window.showOpenFilePicker({
+          types: [{ description:'Canvas file', accept: {'application/json':['.json']} }]
+        });
+        lastSaveHandle = handle;
+        const file = await handle.getFile();
+        applyLoadedScene(JSON.parse(await file.text()));
+        resetView();
+        showToast('File loaded');
+        return;
+      } catch (err){
+        if (err && err.name === 'AbortError') return;
+        // fall through to hidden <input type=file> fallback
+      }
+    }
     document.getElementById('fileInput').click();
-  });
-  
+  }
+  document.getElementById('loadFileBtn').addEventListener('click', openFromDisk);
+
   document.getElementById('fileInput').addEventListener('change', e => {
     const file = e.target.files[0];
     if (!file) return;
     const reader = new FileReader();
     reader.onload = (ev) => {
       try {
-        strokes = JSON.parse(ev.target.result);
-        localStorage.setItem('infinite-canvas-save', JSON.stringify(strokes));
+        applyLoadedScene(JSON.parse(ev.target.result));
         resetView();
         showToast('File loaded');
       } catch (err) {
@@ -1240,7 +2031,39 @@
   //end
 
   document.getElementById('helpBtn').addEventListener('click', e => { e.stopPropagation(); helpPop.classList.toggle('show'); });
-  window.addEventListener('click', e => { if (!helpPop.contains(e.target) && e.target.id !== 'helpBtn') helpPop.classList.remove('show'); });
+
+  // ---- paper template popover ------------------------------------------
+  const templatePop = document.getElementById('templatePop');
+  function refreshTemplateActiveRow(){
+    templatePop.querySelectorAll('.tpl-row').forEach(row => row.classList.toggle('active', row.dataset.template === state.template));
+  }
+  document.getElementById('templateBtn').addEventListener('click', e => {
+    e.stopPropagation(); templatePop.classList.toggle('show'); refreshTemplateActiveRow();
+  });
+  templatePop.querySelectorAll('.tpl-row').forEach(row => {
+    row.addEventListener('click', () => {
+      state.template = row.dataset.template;
+      localStorage.setItem('canvas-template', state.template);
+      refreshTemplateActiveRow();
+      templatePop.classList.remove('show');
+      requestRenderNow();
+    });
+  });
+
+  // ---- shapes flyout ------------------------------------------------------
+  const shapeFlyout = document.getElementById('shapeFlyout');
+  document.getElementById('shapeFlyoutToggle').addEventListener('click', e => {
+    e.stopPropagation(); shapeFlyout.classList.toggle('open');
+  });
+  shapeFlyout.querySelectorAll('.flyout-menu .tool-btn').forEach(btn => {
+    btn.addEventListener('click', () => shapeFlyout.classList.remove('open'));
+  });
+
+  window.addEventListener('click', e => {
+    if (!helpPop.contains(e.target) && e.target.id !== 'helpBtn') helpPop.classList.remove('show');
+    if (!templatePop.contains(e.target) && e.target.id !== 'templateBtn') templatePop.classList.remove('show');
+    if (!shapeFlyout.contains(e.target)) shapeFlyout.classList.remove('open');
+  });
 
   // ---- toast -----------------------------------------------------------
   let toastTimer = null;
@@ -1259,8 +2082,8 @@
   }
 
   document.getElementById('exportPngBtn').addEventListener('click', () => {
-    if (!strokes.length){ showToast('Nothing to export yet'); return; }
-    const bbox = computeStrokesBBox(strokes);
+    if (!strokes.length && !media.length){ showToast('Nothing to export yet'); return; }
+    const bbox = computeSceneBBox();
     const pad = 40, scale = 2;
     const w = (bbox.maxX-bbox.minX) + pad*2;
     const h = (bbox.maxY-bbox.minY) + pad*2;
@@ -1271,6 +2094,7 @@
     octx.fillStyle = '#FFFFFF';
     octx.fillRect(0, 0, off.width, off.height);
     octx.setTransform(scale, 0, 0, scale, (pad-bbox.minX)*scale, (pad-bbox.minY)*scale);
+    for (const m of media) drawMediaItem(octx, m);
     for (const s of strokes) drawStroke(octx, s);
     triggerDownload(off.toDataURL('image/png'), 'vector-sketch.png');
     showToast('PNG exported');
@@ -1292,18 +2116,47 @@
     }
     return out;
   }
+  function shapeToSVG(shape, offX, offY){
+    const b = getShapeBBox(shape);
+    const sw = Math.max(1, shape.baseWidth||2);
+    const x0=b.minX+offX, y0=b.minY+offY, w=b.maxX-b.minX, h=b.maxY-b.minY;
+    switch(shape.type){
+      case 'rect': case 'node':
+        return '<rect x="'+x0.toFixed(2)+'" y="'+y0.toFixed(2)+'" width="'+w.toFixed(2)+'" height="'+h.toFixed(2)+
+          '" rx="'+(shape.type==='node'?14:0)+'" fill="none" stroke="'+shape.color+'" stroke-width="'+sw+'"/>\n';
+      case 'ellipse':
+        return '<ellipse cx="'+(x0+w/2).toFixed(2)+'" cy="'+(y0+h/2).toFixed(2)+'" rx="'+(w/2).toFixed(2)+'" ry="'+(h/2).toFixed(2)+
+          '" fill="none" stroke="'+shape.color+'" stroke-width="'+sw+'"/>\n';
+      case 'triangle': {
+        const v = triangleVertices(shape).map(p => (p.x+offX).toFixed(2)+','+(p.y+offY).toFixed(2)).join(' ');
+        return '<polygon points="'+v+'" fill="none" stroke="'+shape.color+'" stroke-width="'+sw+'"/>\n';
+      }
+      case 'arrow': {
+        const [p0,p1] = shape.points;
+        return '<line x1="'+(p0.x+offX).toFixed(2)+'" y1="'+(p0.y+offY).toFixed(2)+'" x2="'+(p1.x+offX).toFixed(2)+'" y2="'+(p1.y+offY).toFixed(2)+
+          '" stroke="'+shape.color+'" stroke-width="'+sw+'" marker-end="url(#arrowhead)"/>\n';
+      }
+    }
+    return '';
+  }
+  function mediaToSVG(item, offX, offY){
+    return '<image x="'+(item.x+offX).toFixed(2)+'" y="'+(item.y+offY).toFixed(2)+'" width="'+item.w.toFixed(2)+'" height="'+item.h.toFixed(2)+
+      '" href="'+item.dataURL+'" preserveAspectRatio="none"/>\n';
+  }
   document.getElementById('exportSvgBtn').addEventListener('click', () => {
-    if (!strokes.length){ showToast('Nothing to export yet'); return; }
-    const bbox = computeStrokesBBox(strokes);
+    if (!strokes.length && !media.length){ showToast('Nothing to export yet'); return; }
+    const bbox = computeSceneBBox();
     const pad = 40;
     const w = (bbox.maxX-bbox.minX) + pad*2;
     const h = (bbox.maxY-bbox.minY) + pad*2;
     const offX = pad - bbox.minX, offY = pad - bbox.minY;
     let body = '';
-    for (const s of strokes) body += strokeToSVGPaths(s, offX, offY);
+    for (const m of media) body += mediaToSVG(m, offX, offY);
+    for (const s of strokes) body += (s.type && SHAPE_TYPES.has(s.type)) ? shapeToSVG(s, offX, offY) : strokeToSVGPaths(s, offX, offY);
+    const defs = '<defs><marker id="arrowhead" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0 0L8 4L0 8z"/></marker></defs>\n';
     const svg = '<?xml version="1.0" encoding="UTF-8"?>\n' +
-      '<svg xmlns="http://www.w3.org/2000/svg" width="'+w.toFixed(0)+'" height="'+h.toFixed(0)+'" viewBox="0 0 '+w.toFixed(0)+' '+h.toFixed(0)+'">\n' +
-      '<rect width="100%" height="100%" fill="#ffffff"/>\n' + body + '</svg>\n';
+      '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="'+w.toFixed(0)+'" height="'+h.toFixed(0)+'" viewBox="0 0 '+w.toFixed(0)+' '+h.toFixed(0)+'">\n' +
+      '<rect width="100%" height="100%" fill="#ffffff"/>\n' + defs + body + '</svg>\n';
     const blob = new Blob([svg], { type:'image/svg+xml' });
     const url = URL.createObjectURL(blob);
     triggerDownload(url, 'vector-sketch.svg');
@@ -1316,6 +2169,9 @@
   function init(){
     applyTheme();
     loadLocalStrokes();
+    for (const s of strokes) if (s.id >= nextId) nextId = s.id + 1;
+    for (const c of connectors) if (c.id >= nextId) nextId = c.id + 1;
+    loadLocalMedia(); // async — pulls saved PDFs/images out of IndexedDB and bumps nextId past their ids too
     resize();
     camera.panX = window.innerWidth / 2;
     camera.panY = window.innerHeight / 2;
