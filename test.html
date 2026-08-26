@@ -72,6 +72,21 @@
   .tool-btn.active{ background:var(--signal-soft); color:var(--signal); box-shadow:inset 0 0 0 1px rgba(53,224,198,0.45); }
   .tool-btn:active{ transform:scale(0.92); }
 
+  .canvas-text-input {
+    position: fixed;
+    background: transparent;
+    border: 1px dashed var(--signal);
+    outline: none;
+    padding: 0;
+    margin: 0;
+    resize: none;
+    overflow: hidden;
+    white-space: pre;
+    z-index: 100;
+    font-family: var(--font-ui);
+    line-height: 1.2;
+  }
+
   .icon-btn{
     height:36px; padding:0 12px; display:flex; align-items:center; gap:6px;
     border-radius:var(--radius-sm); font-size:12.5px; font-weight:500; letter-spacing:.01em; color:var(--ink-soft);
@@ -178,6 +193,13 @@
   <button class="tool-btn" data-tool="select" title="Select (V)" aria-label="Select tool">
     <svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M4 3l7.5 17.5 2-7.3 7.3-2z"/></svg>
   </button>
+  <button class="tool-btn" data-tool="text" title="Text Tool (T)" aria-label="Text tool">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="4 7 4 4 20 4 20 7"></polyline>
+      <line x1="9" y1="20" x2="15" y2="20"></line>
+      <line x1="12" y1="4" x2="12" y2="20"></line>
+    </svg>
+  </button>
 
   <div class="divider"></div>
 
@@ -251,6 +273,7 @@
   <div class="help-row"><span>X</span><span>Precision eraser</span></div>
   <div class="help-row"><span>H</span><span>Hand / pan</span></div>
   <div class="help-row"><span>V</span><span>Select</span></div>
+  <div class="help-row"><span>T</span><span>Text tool</span></div>
   <div class="help-row"><span>Space (hold)</span><span>Pan</span></div>
   <div class="help-row"><span>Mid-click / Shift-drag</span><span>Pan</span></div>
   <div class="help-row"><span>Scroll / Pinch</span><span>Zoom</span></div>
@@ -302,11 +325,14 @@
 
   // ---- app state --------------------------------------------------------
   const state = {
-    tool: 'pen',            // 'pen' | 'eraser-stroke' | 'eraser-precision' | 'hand' | 'select'
+    tool: 'pen', // 'pen' | 'eraser-stroke' | 'eraser-precision' | 'hand' | 'select' | 'text'
     color: '#14151A',
-    baseWidth: 6,            // world units — pen brush diameter at full pressure
-    eraserRadius: 22,        // SCREEN pixels — kept constant on screen regardless of zoom
+    baseWidth: 6,
+    eraserRadius: 22,
+    fontSize: 24 // Base world font size
   };
+
+  
 
   const camera = { panX: 0, panY: 0, zoom: 1 }; // world->screen: s = w*zoom + pan
 
@@ -420,12 +446,44 @@
     }
     return false;
   }
-  function hitTestStroke(p){
-    for (let i = strokes.length-1; i >= 0; i--){
-      if (strokeHitByCircle(strokes[i], p, 6/camera.zoom)) return strokes[i];
+
+    function getTextBBox(stroke) {
+      ctx.save();
+      ctx.font = `${stroke.fontSize || 24}px var(--font-ui)`;
+      const lines = stroke.text.split('\n');
+      let maxW = 0;
+      for (const line of lines) {
+        const w = ctx.measureText(line).width;
+        if (w > maxW) maxW = w;
+      }
+      const lineHeight = (stroke.fontSize || 24) * 1.2;
+      const totalH = lines.length * lineHeight;
+      ctx.restore();
+    
+      return {
+        minX: stroke.x,
+        minY: stroke.y,
+        maxX: stroke.x + maxW,
+        maxY: stroke.y + totalH,
+        width: maxW,
+        height: totalH
+      };
     }
-    return null;
-  }
+  
+  function hitTestStroke(p) {
+      for (let i = strokes.length - 1; i >= 0; i--) {
+        const s = strokes[i];
+        if (s.type === 'text') {
+          const b = getTextBBox(s);
+          if (p.x >= b.minX && p.x <= b.maxX && p.y >= b.minY && p.y <= b.maxY) {
+            return s;
+          }
+        } else if (strokeHitByCircle(s, p, 6 / camera.zoom)) {
+          return s;
+        }
+      }
+      return null;
+    }
 
   // Precision eraser: true vector path-splitting. Points inside the eraser
   // circle (or segments passing through it) are removed; the remaining
@@ -735,73 +793,178 @@
   }
 
   // ---- Smooth Curve Drawing ----
-  function drawStroke(targetCtx, stroke) {
-    const pts = stroke.points;
-    if (!pts || !pts.length) return;
+    function drawStroke(targetCtx, stroke) {
+        // 1. Text rendering logic
+        if (stroke.type === 'text') {
+          if (!stroke.text) return;
+          targetCtx.save();
+          targetCtx.fillStyle = getStrokeColor(stroke.color);
+          const size = stroke.fontSize || 24;
+          targetCtx.font = `${size}px var(--font-ui)`;
+          targetCtx.textBaseline = 'top';
+    
+          const lines = stroke.text.split('\n');
+          const lineHeight = size * 1.2;
+          for (let i = 0; i < lines.length; i++) {
+            targetCtx.fillText(lines[i], stroke.x, stroke.y + (i * lineHeight));
+          }
+          targetCtx.restore();
+          return;
+        }
+    
+        // 2. Freehand path rendering logic
+        const pts = stroke.points;
+        if (!pts || !pts.length) return;
+    
+        targetCtx.strokeStyle = getStrokeColor(stroke.color);
+        targetCtx.fillStyle = stroke.color;
+        targetCtx.lineCap = 'round';
+        targetCtx.lineJoin = 'round';
+    
+        // Single point (dot)
+        if (pts.length === 1) {
+          const r = pressureToWidth(stroke, pts[0].p) / 2;
+          targetCtx.beginPath();
+          targetCtx.arc(pts[0].x, pts[0].y, r, 0, Math.PI * 2);
+          targetCtx.fill();
+          return;
+        }
+    
+        // Two points (simple straight line)
+        if (pts.length === 2) {
+          targetCtx.lineWidth = (pressureToWidth(stroke, pts[0].p) + pressureToWidth(stroke, pts[1].p)) / 2;
+          targetCtx.beginPath();
+          targetCtx.moveTo(pts[0].x, pts[0].y);
+          targetCtx.lineTo(pts[1].x, pts[1].y);
+          targetCtx.stroke();
+          return;
+        }
+    
+        // 3+ points: Draw a smooth, single quadratic curve path
+        const avgPressure = pts.reduce((sum, pt) => sum + pt.p, 0) / pts.length;
+        targetCtx.lineWidth = pressureToWidth(stroke, avgPressure);
+    
+        targetCtx.beginPath();
+        targetCtx.moveTo(pts[0].x, pts[0].y);
+    
+        for (let i = 1; i < pts.length - 1; i++) {
+          const midX = (pts[i].x + pts[i + 1].x) / 2;
+          const midY = (pts[i].y + pts[i + 1].y) / 2;
+          targetCtx.quadraticCurveTo(pts[i].x, pts[i].y, midX, midY);
+        }
+    
+        // Connect to the final point
+        targetCtx.lineTo(pts[pts.length - 1].x, pts[pts.length - 1].y);
+        targetCtx.stroke();
+      }
 
-    targetCtx.strokeStyle = getStrokeColor(stroke.color);
-    targetCtx.fillStyle = stroke.color;
-    targetCtx.lineCap = 'round';
-    targetCtx.lineJoin = 'round';
-
-    // Single point (dot)
-    if (pts.length === 1) {
-      const r = pressureToWidth(stroke, pts[0].p) / 2;
-      targetCtx.beginPath();
-      targetCtx.arc(pts[0].x, pts[0].y, r, 0, Math.PI * 2);
-      targetCtx.fill();
-      return;
+  function drawSelectionOutline(stroke) {
+      const b = stroke.type === 'text' ? getTextBBox(stroke) : getStrokeBBox(stroke);
+      const pad = 6 / camera.zoom;
+      const x = b.minX - pad, y = b.minY - pad, w = (b.maxX - b.minX) + pad * 2, h = (b.maxY - b.minY) + pad * 2;
+      ctx.save();
+      ctx.strokeStyle = 'rgba(53,224,198,0.9)';
+      ctx.lineWidth = 1.5 / camera.zoom;
+      ctx.setLineDash([5 / camera.zoom, 4 / camera.zoom]);
+      ctx.strokeRect(x, y, w, h);
+      ctx.setLineDash([]);
+      const t = 8 / camera.zoom;
+      ctx.lineWidth = 2 / camera.zoom;
+      const corners = [[x, y, 1, 1], [x + w, y, -1, 1], [x, y + h, 1, -1], [x + w, y + h, -1, -1]];
+      for (const [cx, cy, sx, sy] of corners) {
+        ctx.beginPath();
+        ctx.moveTo(cx, cy + t * sy); ctx.lineTo(cx, cy); ctx.lineTo(cx + t * sx, cy);
+        ctx.stroke();
+      }
+      ctx.restore();
     }
 
-    // Two points (simple straight line)
-    if (pts.length === 2) {
-      targetCtx.lineWidth = (pressureToWidth(stroke, pts[0].p) + pressureToWidth(stroke, pts[1].p)) / 2;
-      targetCtx.beginPath();
-      targetCtx.moveTo(pts[0].x, pts[0].y);
-      targetCtx.lineTo(pts[1].x, pts[1].y);
-      targetCtx.stroke();
-      return;
+    function spawnTextEditor(worldPos, existingStroke = null) {
+      const input = document.createElement('textarea');
+      input.className = 'canvas-text-input';
+      
+      const initialText = existingStroke ? existingStroke.text : '';
+      const fontSize = existingStroke ? (existingStroke.fontSize || 24) : (state.baseWidth * 4);
+      
+      input.value = initialText;
+      input.style.color = getStrokeColor(existingStroke ? existingStroke.color : state.color);
+      
+      function positionInput() {
+        const pos = existingStroke ? worldToScreen(existingStroke.x, existingStroke.y) : worldToScreen(worldPos.x, worldPos.y);
+        const screenFontSize = fontSize * camera.zoom;
+        input.style.left = `${pos.x}px`;
+        input.style.top = `${pos.y}px`;
+        input.style.fontSize = `${screenFontSize}px`;
+      }
+      
+      positionInput();
+      document.body.appendChild(input);
+      
+      // Auto-resize textarea width/height dynamically
+      function autoResize() {
+        input.style.width = 'auto';
+        input.style.height = 'auto';
+        input.style.width = `${Math.max(60, input.scrollHeight + 20)}px`;
+        input.style.height = `${input.scrollHeight}px`;
+      }
+      
+      autoResize();
+      input.focus();
+      
+      let committed = false;
+      function commit() {
+        if (committed) return;
+        committed = true;
+        const textVal = input.value.trim();
+        
+        if (textVal) {
+          pushHistory();
+          if (existingStroke) {
+            existingStroke.text = input.value;
+          } else {
+            strokes.push({
+              id: nextId++,
+              type: 'text',
+              x: worldPos.x,
+              y: worldPos.y,
+              text: input.value,
+              color: state.color,
+              fontSize: fontSize
+            });
+          }
+        } else if (existingStroke) {
+          pushHistory();
+          strokes = strokes.filter(s => s.id !== existingStroke.id);
+        }
+        
+        input.remove();
+        window.removeEventListener('resize', positionInput);
+        requestRenderNow();
+      }
+      
+      input.addEventListener('input', autoResize);
+      input.addEventListener('blur', commit);
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          commit();
+        }
+      });
     }
-
-    // 3+ points: Draw a smooth, single quadratic curve path
-    const avgPressure = pts.reduce((sum, pt) => sum + pt.p, 0) / pts.length;
-    targetCtx.lineWidth = pressureToWidth(stroke, avgPressure);
-
-    targetCtx.beginPath();
-    targetCtx.moveTo(pts[0].x, pts[0].y);
-
-    for (let i = 1; i < pts.length - 1; i++) {
-      const midX = (pts[i].x + pts[i + 1].x) / 2;
-      const midY = (pts[i].y + pts[i + 1].y) / 2;
-      // Use the raw point as control point, curve toward midPoint
-      targetCtx.quadraticCurveTo(pts[i].x, pts[i].y, midX, midY);
-    }
-
-    // Connect to the final point
-    targetCtx.lineTo(pts[pts.length - 1].x, pts[pts.length - 1].y);
-    targetCtx.stroke();
-  }
-
-  function drawSelectionOutline(stroke){
-    const b = getStrokeBBox(stroke);
-    const pad = 6 / camera.zoom;
-    const x = b.minX-pad, y = b.minY-pad, w = (b.maxX-b.minX)+pad*2, h = (b.maxY-b.minY)+pad*2;
-    ctx.save();
-    ctx.strokeStyle = 'rgba(53,224,198,0.9)';
-    ctx.lineWidth = 1.5 / camera.zoom;
-    ctx.setLineDash([5/camera.zoom, 4/camera.zoom]);
-    ctx.strokeRect(x, y, w, h);
-    ctx.setLineDash([]);
-    const t = 8 / camera.zoom;
-    ctx.lineWidth = 2 / camera.zoom;
-    const corners = [[x,y,1,1],[x+w,y,-1,1],[x,y+h,1,-1],[x+w,y+h,-1,-1]];
-    for (const [cx,cy,sx,sy] of corners){
-      ctx.beginPath();
-      ctx.moveTo(cx, cy+t*sy); ctx.lineTo(cx, cy); ctx.lineTo(cx+t*sx, cy);
-      ctx.stroke();
-    }
-    ctx.restore();
-  }
+    
+    // Wire canvas click to trigger text placement:
+    canvas.addEventListener('pointerdown', e => {
+      if (e.button === 0 && state.tool === 'text') {
+        const p = screenToWorld(e.clientX, e.clientY);
+        const hit = hitTestStroke(p);
+        if (hit && hit.type === 'text') {
+          spawnTextEditor(p, hit);
+        } else {
+          spawnTextEditor(p);
+        }
+      }
+    });
+  
+  
   function drawRubberBand(){
     const r = normalizeRect(rubberBand.startWorld, rubberBand.curWorld);
     ctx.save();
@@ -999,6 +1162,7 @@
       case 'x': setTool('eraser-precision'); break;
       case 'h': setTool('hand'); break;
       case 'v': case 's': setTool('select'); break;
+      case 't': setTool('text'); break;
       case '0': resetView(); break;
     }
   });
