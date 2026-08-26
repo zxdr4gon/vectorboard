@@ -1134,20 +1134,20 @@
   let isDarkMode = localStorage.getItem('canvas-theme') === 'dark';
 
   function getThemeColors() {
-    return isDarkMode ? {
-      paper: '#121316',
-      gridMajor: 'rgba(255,255,255,0.07)',
-      gridMinor: 'rgba(255,255,255,0.025)',
-      axisX: 'rgba(255,92,92,0.45)',
-      axisY: 'rgba(53,224,198,0.45)'
-    } : {
-      paper: '#E9EAEE',
-      gridMajor: 'rgba(20,21,26,0.10)',
-      gridMinor: 'rgba(20,21,26,0.045)',
-      axisX: 'rgba(255,92,92,0.35)',
-      axisY: 'rgba(61,92,255,0.35)'
-    };
-  }
+  return isDarkMode ? {
+    paper: '#121316',
+    gridMajor: 'rgba(255, 255, 255, 0.25)', // Increased from 0.07 for clear visibility
+    gridMinor: 'rgba(255, 255, 255, 0.12)', // Increased from 0.025
+    axisX: 'rgba(255, 92, 92, 0.65)',
+    axisY: 'rgba(53, 224, 198, 0.65)'
+  } : {
+    paper: '#E9EAEE',
+    gridMajor: 'rgba(20, 21, 26, 0.10)',
+    gridMinor: 'rgba(20, 21, 26, 0.045)',
+    axisX: 'rgba(255, 92, 92, 0.35)',
+    axisY: 'rgba(61, 92, 255, 0.35)'
+  };
+}
 
   function applyTheme() {
     document.body.classList.toggle('dark-mode', isDarkMode);
@@ -1304,16 +1304,21 @@
     grid: drawBlueprintGrid, dots: drawDotGrid, graph: drawGraphPaper, lined: drawLinedPaper,
     cornell: drawCornell, isometric: drawIsometric, staves: drawStaves, blank: null,
   };
+
   function drawGrid(){
+  // Explicitly return if template is blank so no grid renders
+    if (state.template === 'blank') return;
+  
     const theme = getThemeColors();
     const topLeft = screenToWorld(0, 0);
     const bottomRight = screenToWorld(window.innerWidth, window.innerHeight);
-    const renderer = TEMPLATE_RENDERERS[state.template] || drawBlueprintGrid;
+    const renderer = TEMPLATE_RENDERERS[state.template];
     if (!renderer) return;
+  
     ctx.save();
     renderer(theme, topLeft, bottomRight);
     ctx.restore();
-  }
+    }
 
   // ---- shape rendering (rect/ellipse/triangle/arrow/node) -------------------
   function drawShapeItem(targetCtx, shape){
@@ -1571,26 +1576,29 @@
   }
 
   function render(){
-    const theme = getThemeColors();
-    ctx.setTransform(1,0,0,1,0,0);
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = theme.paper;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    ctx.setTransform(dpr*camera.zoom, 0, 0, dpr*camera.zoom, dpr*camera.panX, dpr*camera.panY);
-    drawGrid();
-    for (const m of media) drawMediaItem(ctx, m);          // raster layer (PDF pages / images) sits under ink
-    drawConnectors(ctx);                                    // connectors under shapes/ink, above media
-    for (const s of strokes) drawStroke(ctx, s);            // freehand ink + shapes on top
-    drawShapeDraftPreview(ctx);
-    for (const s of strokes) if (selectedIds.has(s.id)) drawSelectionOutline(s);
-    for (const m of media) if (selectedIds.has(m.id)) drawMediaSelectionUI(m);
-    if (rubberBand) drawRubberBand();
-
-    ctx.setTransform(dpr,0,0,dpr,0,0);
-    drawEraserPreview();
-    ctx.setTransform(1,0,0,1,0,0);
-  }
+      const theme = getThemeColors();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      // Sets background to pure white for blank template, or theme paper color otherwise
+      ctx.fillStyle = (state.template === 'blank') ? '#FFFFFF' : theme.paper;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+      ctx.setTransform(dpr*camera.zoom, 0, 0, dpr*camera.zoom, dpr*camera.panX, dpr*camera.panY);
+      drawGrid();
+      
+      for (const m of media) drawMediaItem(ctx, m);
+      drawConnectors(ctx);
+      for (const s of strokes) drawStroke(ctx, s);
+      drawShapeDraftPreview(ctx);
+      for (const s of strokes) if (selectedIds.has(s.id)) drawSelectionOutline(s);
+      for (const m of media) if (selectedIds.has(m.id)) drawMediaSelectionUI(m);
+      if (rubberBand) drawRubberBand();
+    
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      drawEraserPreview();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+    }
 
   // ---- Listener & Init wiring ----
   document.getElementById('themeBtn').addEventListener('click', () => {
@@ -2033,6 +2041,120 @@
 
   document.getElementById('helpBtn').addEventListener('click', e => { e.stopPropagation(); helpPop.classList.toggle('show'); });
 
+
+  // ---- file uploading -------------------------------------------------
+  // Button click triggers file picker
+document.getElementById('importMediaBtn').addEventListener('click', () => {
+  document.getElementById('mediaInput').click();
+});
+
+// Handle file selection from button
+document.getElementById('mediaInput').addEventListener('change', (e) => {
+  if (e.target.files && e.target.files.length > 0) {
+    handleImportFiles(Array.from(e.target.files));
+    e.target.value = ''; // Reset input selection
+  }
+});
+
+// Handle Drag & Drop events
+window.addEventListener('dragover', (e) => {
+  e.preventDefault();
+  document.getElementById('dropOverlay').classList.add('show');
+});
+
+window.addEventListener('dragleave', (e) => {
+  if (e.clientX <= 0 || e.clientY <= 0 || e.clientX >= window.innerWidth || e.clientY >= window.innerHeight) {
+    document.getElementById('dropOverlay').classList.remove('show');
+  }
+});
+
+window.addEventListener('drop', (e) => {
+  e.preventDefault();
+  document.getElementById('dropOverlay').classList.remove('show');
+  if (e.dataTransfer && e.dataTransfer.files.length > 0) {
+    handleImportFiles(Array.from(e.dataTransfer.files));
+  }
+});
+
+// Core importer for Images and PDFs
+async function handleImportFiles(files) {
+  for (const file of files) {
+    if (file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const dataURL = e.target.result;
+        const img = new Image();
+        img.onload = () => {
+          const center = screenToWorld(window.innerWidth / 2, window.innerHeight / 2);
+          const aspect = img.width / img.height;
+          const w = 400;
+          const h = w / aspect;
+          const item = {
+            id: nextId++,
+            kind: 'image',
+            dataURL: dataURL,
+            x: center.x - w / 2,
+            y: center.y - h / 2,
+            w: w,
+            h: h
+          };
+          pushHistory();
+          media.push(item);
+          loadMediaImage(item);
+          persistMediaItem(item);
+          requestRenderNow();
+        };
+        img.src = dataURL;
+      };
+      reader.readAsDataURL(file);
+    } else if (file.type === 'application/pdf') {
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        const center = screenToWorld(window.innerWidth / 2, window.innerHeight / 2);
+        
+        let offsetY = 0;
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const viewport = page.getViewport({ scale: 2 });
+          const pdfCanvas = document.createElement('canvas');
+          pdfCanvas.width = viewport.width;
+          pdfCanvas.height = viewport.height;
+          const pdfCtx = pdfCanvas.getContext('2d');
+          
+          await page.render({ canvasContext: pdfCtx, viewport: viewport }).promise;
+          
+          const dataURL = pdfCanvas.toDataURL('image/png');
+          const aspect = viewport.width / viewport.height;
+          const w = 500;
+          const h = w / aspect;
+          
+          const item = {
+            id: nextId++,
+            kind: 'pdf',
+            dataURL: dataURL,
+            x: center.x - w / 2,
+            y: center.y - h / 2 + offsetY,
+            w: w,
+            h: h
+          };
+          pushHistory();
+          media.push(item);
+          loadMediaImage(item);
+          persistMediaItem(item);
+          offsetY += h + 20; // Stacks multi-page PDFs vertically
+        }
+        requestRenderNow();
+        showToast(`Imported ${pdf.numPages} page(s)`);
+      } catch (err) {
+        showToast('Error parsing PDF file');
+        console.error(err);
+      }
+    }
+  }
+}
+
+  
   // ---- paper template popover ------------------------------------------
   const templatePop = document.getElementById('templatePop');
   function refreshTemplateActiveRow(){
