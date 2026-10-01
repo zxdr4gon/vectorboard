@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Vector Plane — Feature Guide</title>
+<meta name="description" content="An infinite whiteboard that runs in your browser. See everything it can do.">
+<link rel="icon" href="https://img.icons8.com/3d-sugary/100/class-1.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#E9EAEE; --card:#fff; --line:rgba(20,21,26,.1); --ink:#14151A; --mute:#5b5e68;
+    --accent:#0f9d8a; --accent-soft:rgba(15,157,138,.12); --on-accent:#fff;
+    --ui:'Space Grotesk',system-ui,-apple-system,sans-serif;
+    --mono:'IBM Plex Mono',ui-monospace,monospace;
+    box-sizing:border-box;
+    padding-top:env(safe-area-inset-top,0px);
+    padding-bottom:env(safe-area-inset-bottom,0px);
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --bg:#121316; --card:#1E2024; --line:rgba(255,255,255,.08); --ink:#E9EAEE; --mute:#8A8D96;
+      --accent:#35E0C6; --accent-soft:rgba(53,224,198,.14); --on-accent:#0A1512;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#121316; --card:#1E2024; --line:rgba(255,255,255,.08); --ink:#E9EAEE; --mute:#8A8D96;
+    --accent:#35E0C6; --accent-soft:rgba(53,224,198,.14); --on-accent:#0A1512;
+  }
+  *{box-sizing:border-box}
+  html{scroll-padding-top:env(safe-area-inset-top,0px);scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--ui);line-height:1.55;-webkit-text-size-adjust:100%}
+  .wrap{max-width:860px;margin:0 auto;padding:0 20px}
+  .hero{padding:56px 0 36px;text-align:center}
+  .tag{display:inline-block;font:500 11px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--accent);background:var(--accent-soft);padding:6px 12px;border-radius:999px}
+  h1{font-size:clamp(34px,8vw,58px);line-height:1.04;margin:18px 0 14px;letter-spacing:-.02em}
+  .lead{font-size:clamp(16px,3.6vw,19px);color:var(--mute);max-width:560px;margin:0 auto 26px}
+  .btn{display:inline-block;background:var(--accent);color:var(--on-accent);font-weight:600;text-decoration:none;padding:14px 28px;border-radius:14px;font-size:16px}
+  .btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line);margin-left:8px}
+  .pills{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:22px}
+  .pills span{font-size:12.5px;color:var(--mute);border:1px solid var(--line);padding:5px 11px;border-radius:999px;background:var(--card)}
+  section{padding:30px 0}
+  h2{font-size:clamp(22px,5vw,30px);margin:0 0 6px;letter-spacing:-.01em}
+  .sub{color:var(--mute);margin:0 0 20px}
+  .grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(250px,1fr))}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px}
+  .card h3{margin:0 0 6px;font-size:16.5px;display:flex;align-items:center;gap:9px}
+  .card h3 i{font-style:normal;display:grid;place-items:center;width:30px;height:30px;border-radius:9px;background:var(--accent-soft);font-size:15px}
+  .card p{margin:0;color:var(--mute);font-size:14.5px}
+  kbd{font:500 12px var(--mono);background:var(--accent-soft);color:var(--accent);padding:2px 7px;border-radius:6px;white-space:nowrap}
+  ol.steps{list-style:none;counter-reset:s;padding:0;margin:0;display:grid;gap:10px}
+  ol.steps li{counter-increment:s;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px 14px 54px;position:relative;font-size:15px}
+  ol.steps li::before{content:counter(s);position:absolute;left:14px;top:12px;width:28px;height:28px;border-radius:50%;background:var(--accent);color:var(--on-accent);display:grid;place-items:center;font-weight:700;font-size:14px}
+  .scroll{overflow-x:auto;border:1px solid var(--line);border-radius:14px;background:var(--card)}
+  table{border-collapse:collapse;width:100%;min-width:420px;font-size:14.5px}
+  th,td{text-align:left;padding:10px 14px;border-bottom:1px solid var(--line)}
+  tr:last-child td{border-bottom:none}
+  th{font:500 11px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--mute)}
+  .note{background:var(--accent-soft);border-radius:14px;padding:16px 18px;font-size:15px}
+  footer{padding:36px 0 48px;text-align:center;color:var(--mute);font-size:13.5px}
+  footer .btn{margin-bottom:18px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <span class="tag">Infinite canvas</span>
+    <h1>Vector Plane</h1>
+    <p class="lead">An infinite whiteboard that runs right in your browser. Sketch, diagram, annotate PDFs, and zoom forever without losing sharpness. No install, no account.</p>
+    <a class="btn" href="https://zxdr4gon.github.io/vectorboard/">Open the canvas</a><a class="btn ghost" href="#features">See features</a>
+    <div class="pills"><span>Works on phone</span><span>Works on desktop</span><span>Free</span><span>Auto-saves</span></div>
+  </header>
+
+  <section id="start">
+    <h2>Get started in 10 seconds</h2>
+    <p class="sub">The pen is already selected. Just start drawing.</p>
+    <ol class="steps">
+      <li><b>Draw.</b> Drag with your finger, stylus or mouse.</li>
+      <li><b>Hold still</b> at the end of a stroke for a moment and it snaps into a clean line, circle, rectangle, triangle or arrow.</li>
+      <li><b>Pan and zoom.</b> Pinch with two fingers, or scroll your mouse wheel. Hold <kbd>Space</kbd> and drag to pan.</li>
+      <li><b>Open the top-right menu</b> (the little arrow) to save, export, change paper and switch to dark mode.</li>
+    </ol>
+  </section>
+
+  <section id="features">
+    <h2>Everything it can do</h2>
+    <p class="sub">Tap any tool in the toolbar. Keyboard shortcuts are in brackets.</p>
+    <div class="grid">
+      <div class="card"><h3><i>✏️</i>Pressure-sensitive pen <kbd>P</kbd></h3><p>Smooth, curved strokes. With a stylus, harder presses draw thicker lines. Pick any colour and size.</p></div>
+      <div class="card"><h3><i>🖍️</i>Highlighter <kbd>M</kbd></h3><p>Translucent strokes that blend over text and PDFs. They never auto-snap, so underlines stay as you drew them.</p></div>
+      <div class="card"><h3><i>✨</i>Auto-snap shapes</h3><p>Pause at the end of a stroke and your wobbly drawing becomes a perfect line, ellipse, rectangle, triangle or arrow.</p></div>
+      <div class="card"><h3><i>🧽</i>Two erasers <kbd>E</kbd> <kbd>X</kbd></h3><p>The stroke eraser removes whole strokes. The precision eraser cuts straight through a path and removes only the part you touch.</p></div>
+      <div class="card"><h3><i>◻️</i>Shapes</h3><p>Rectangle <kbd>R</kbd>, ellipse <kbd>O</kbd>, triangle <kbd>T</kbd> and arrow <kbd>A</kbd>. Drag to size them.</p></div>
+      <div class="card"><h3><i>💬</i>Text nodes <kbd>N</kbd></h3><p>Drop a labelled box anywhere. Double-click (or double-tap on touch) to rename it.</p></div>
+      <div class="card"><h3><i>🔗</i>Connectors <kbd>C</kbd></h3><p>Drag from one shape to another to link them. The line stays attached when you move things, so it's great for mind maps and flowcharts.</p></div>
+      <div class="card"><h3><i>📄</i>PDF and image import</h3><p>Drag a file onto the page or tap the image button. PDF pages become annotatable sheets. Drag corners to resize.</p></div>
+      <div class="card"><h3><i>🔍</i>Truly infinite canvas</h3><p>Zoom from 5% to 4000%. It's vector-based, so lines stay razor sharp at any zoom level.</p></div>
+      <div class="card"><h3><i>📐</i>8 paper templates</h3><p>Blueprint grid, dot grid, graph paper, lined paper, Cornell notes, isometric grid, music staves and blank.</p></div>
+      <div class="card"><h3><i>🌙</i>Dark mode</h3><p>One tap switches between light paper and dark. Black ink flips to white automatically so it's always readable.</p></div>
+      <div class="card"><h3><i>↩️</i>Undo and redo</h3><p><kbd>Ctrl</kbd>+<kbd>Z</kbd> and <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd>, or use the toolbar buttons. Covers drawing, moving, deleting and imports.</p></div>
+    </div>
+  </section>
+
+  <section id="save">
+    <h2>Never lose your work</h2>
+    <p class="sub">Your drawing is safe, and portable too.</p>
+    <div class="grid">
+      <div class="card"><h3><i>💾</i>Auto-save</h3><p>Everything is saved in your browser as you draw. Close the tab and come back later, and it's still there.</p></div>
+      <div class="card"><h3><i>📁</i>Save and open files</h3><p>Save your whole canvas as a small <kbd>.json</kbd> file, including shapes, connectors and imported pages. Move it to another device or back it up.</p></div>
+      <div class="card"><h3><i>🖼️</i>Export PNG or SVG</h3><p>Download a high-resolution PNG, or a scalable SVG for slides, print and design tools.</p></div>
+    </div>
+  </section>
+
+  <section id="mobile">
+    <h2>Built for touch</h2>
+    <div class="note">On phones the toolbar sits at the bottom within thumb reach, buttons are larger, and pinch-to-zoom works with two fingers. The menu collapses with the arrow button when you want the full screen to draw on.</div>
+  </section>
+
+  <section id="keys">
+    <h2>Keyboard shortcuts</h2>
+    <p class="sub">For desktop and Chromebook.</p>
+    <div class="scroll"><table>
+      <tr><th>Key</th><th>Action</th></tr>
+      <tr><td><kbd>P</kbd></td><td>Pen</td></tr>
+      <tr><td><kbd>M</kbd></td><td>Highlighter</td></tr>
+      <tr><td><kbd>E</kbd> / <kbd>X</kbd></td><td>Stroke eraser / Precision eraser</td></tr>
+      <tr><td><kbd>V</kbd></td><td>Select and move</td></tr>
+      <tr><td><kbd>H</kbd> or hold <kbd>Space</kbd></td><td>Pan the canvas</td></tr>
+      <tr><td><kbd>R</kbd> <kbd>O</kbd> <kbd>T</kbd> <kbd>A</kbd></td><td>Rectangle, ellipse, triangle, arrow</td></tr>
+      <tr><td><kbd>N</kbd> / <kbd>C</kbd></td><td>Text node / Connector</td></tr>
+      <tr><td><kbd>0</kbd></td><td>Reset view</td></tr>
+      <tr><td><kbd>Del</kbd></td><td>Delete selection</td></tr>
+      <tr><td><kbd>Ctrl</kbd>+<kbd>Z</kbd></td><td>Undo (add <kbd>Shift</kbd> to redo)</td></tr>
+    </table></div>
+  </section>
+
+  <footer>
+    <a class="btn" href="https://zxdr4gon.github.io/vectorboard/">Open the canvas</a>
+    <div>Made with plain HTML, CSS and JavaScript. No tracking, no sign-up.</div>
+  </footer>
+
+</div>
+</body>
+</html>
