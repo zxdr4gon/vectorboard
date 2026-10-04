@@ -3,12 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<title>Vector Sketch — Infinite Canvas</title>
+<title>Vector Plane</title>
 <link rel="icon" type="image/png" href="https://img.icons8.com/3d-sugary/100/class-1.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
   :root{
     --graphite-900:#16171B;
@@ -29,6 +31,7 @@
   }
   *{box-sizing:border-box;}
   html,body{margin:0;height:100%;overflow:hidden;background:var(--paper);font-family:var(--font-ui);}
+  html,body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent;}
   #c{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;}
 
   html, body {
@@ -45,8 +48,6 @@
     align-items:center;
     gap:5px;
     background:linear-gradient(180deg, rgba(31,33,37,0.94), rgba(20,21,25,0.94));
-    backdrop-filter:blur(16px) saturate(150%);
-    -webkit-backdrop-filter:blur(16px) saturate(150%);
     border:1px solid rgba(255,255,255,0.07);
     border-radius:var(--radius-lg);
     box-shadow:0 12px 34px rgba(0,0,0,0.30), 0 1px 0 rgba(255,255,255,0.05) inset;
@@ -54,12 +55,13 @@
     z-index:10;
     user-select:none;
   }
-  .panel-tools{ top:16px; left:50%; transform:translateX(-50%); flex-wrap:wrap; max-width:min(94vw, 940px); justify-content:center; }
-  .panel-view{ top:16px; right:16px; }
+  .panel-tools{ top:calc(16px + env(safe-area-inset-top,0px)); left:50%; transform:translateX(-50%); flex-wrap:wrap; max-width:min(94vw, 940px); justify-content:center; }
+  .panel-view{ top:calc(16px + env(safe-area-inset-top,0px)); right:16px; }
 
   .divider{ width:1px; align-self:stretch; min-height:26px; background:rgba(255,255,255,0.09); margin:0 3px; }
 
   button{ font-family:inherit; border:none; background:transparent; color:var(--ink-soft); cursor:pointer; }
+  button,.panel,.help-pop{touch-action:manipulation;}
   button:focus-visible, input:focus-visible{ outline:2px solid var(--signal); outline-offset:2px; }
 
   .tool-btn{
@@ -106,7 +108,7 @@
   .readout{
     position:fixed; left:16px; bottom:16px; z-index:10;
     font-family:var(--font-mono); font-size:11px; letter-spacing:.03em; color:var(--ink-mute);
-    background:rgba(20,21,25,0.88); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+    background:rgba(20,21,25,0.88);
     border:1px solid rgba(255,255,255,0.07); border-radius:var(--radius-md);
     padding:9px 13px; display:flex; flex-direction:column; gap:3px; min-width:150px;
   }
@@ -116,7 +118,7 @@
 
   .help-pop{
     position:fixed; top:60px; right:16px; z-index:11;
-    background:rgba(20,21,25,0.96); backdrop-filter:blur(14px);
+    background:rgba(20,21,25,0.96);
     border:1px solid rgba(255,255,255,0.08); border-radius:var(--radius-md);
     padding:14px 16px; width:250px; font-size:11.5px; color:var(--ink-soft);
     box-shadow:0 14px 36px rgba(0,0,0,.35);
@@ -180,20 +182,61 @@
   }
   .shape-flyout.open .flyout-menu{ display:flex; }
 
-  /* ---- media (image/pdf) selection resize handle cursor hint ---- */
   #c.resize-cursor{ cursor:nwse-resize; }
 
-  @media (max-width:720px){
-    .size-group label{ display:none; }
-    .size-group input[type=range]{ width:56px; }
-    .readout{ min-width:0; }
-    .help-pop{ right:16px; left:16px; width:auto; }
+  .panel-view{ z-index:12; }
+  .help-pop,.template-pop{ z-index:13; max-height:calc(100vh - 100px); overflow-y:auto; }
+
+  @media (pointer:coarse){            /* bigger touch targets */
+    .tool-btn,.icon-btn{ height:40px; }
+    .tool-btn,.icon-btn.square{ width:40px; }
+    .swatch{ width:26px; height:26px; }
+    #customColor{ width:30px; height:30px; }
+    .size-group input[type=range]{ height:6px; }
+    .size-group input[type=range]::-webkit-slider-thumb{ width:22px; height:22px; margin-top:-8px; }
+    .size-group input[type=range]::-moz-range-thumb{ width:22px; height:22px; }
   }
+  @media (max-width:1100px){          /* tablets: stop the toolbars overlapping */
+    .panel-tools{ left:16px; transform:none; max-width:calc(100vw - 100px); justify-content:flex-start; }
+    .panel-view{ flex-wrap:wrap; justify-content:flex-end; max-width:calc(100vw - 32px); }
+  }
+  @media (max-width:720px){           /* phones */
+    .panel-tools{ top:auto; bottom:calc(8px + env(safe-area-inset-bottom,0px)); left:8px; right:8px; max-width:none; justify-content:center; }
+    .panel-tools.collapsed{ left:50%; right:auto; transform:translateX(-50%); }
+    .panel-tools .toggle-btn svg{ transform:rotate(180deg); }
+    .panel-tools .divider,.panel-view .divider{ display:none; }
+    .size-group{ flex:1 1 150px; min-width:150px; }
+    .size-group label{ display:none; }
+    .size-group input[type=range]{ flex:1; width:auto; min-width:60px; }
+    .shape-flyout .flyout-menu{ top:auto; bottom:48px; }
+    .panel-view{ top:calc(8px + env(safe-area-inset-top,0px)); right:8px; max-width:calc(100vw - 16px); }
+    .readout{ top:calc(8px + env(safe-area-inset-top,0px)); bottom:auto; left:8px; min-width:0; padding:6px 10px; }
+    .readout .brand,.readout .row:last-child{ display:none; }
+    .help-pop,.template-pop{ left:8px; right:8px; width:auto; top:calc(64px + env(safe-area-inset-top,0px)); max-height:calc(100vh - 220px); }
+    .toast{ bottom:auto; top:calc(64px + env(safe-area-inset-top,0px)); transform:translateX(-50%) translateY(-12px); }
+  }
+
+  /* ---- Vector Plane page notebook --------------------------------------- */
+  html,body{background:#cfd2d9;}
+  body.dark-mode{background:#0d0f12;}
+  .page-dock{position:fixed;left:50%;bottom:calc(14px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:20;display:flex;align-items:center;gap:7px;padding:7px 8px;background:rgba(24,26,31,.94);border:1px solid rgba(255,255,255,.09);border-radius:16px;box-shadow:0 14px 36px rgba(0,0,0,.3);backdrop-filter:blur(14px);max-width:min(94vw,900px)}
+  .page-strip{display:flex;align-items:center;gap:6px;max-width:min(72vw,700px);overflow-x:auto;scrollbar-width:thin;padding:2px 1px}
+  .page-strip::-webkit-scrollbar{height:4px}.page-strip::-webkit-scrollbar-thumb{background:rgba(255,255,255,.18);border-radius:99px}
+  .page-thumb{position:relative;flex:0 0 58px;width:58px;height:74px;padding:0;border-radius:8px;overflow:hidden;background:#fff;border:1px solid rgba(255,255,255,.16);box-shadow:0 2px 8px rgba(0,0,0,.2);cursor:pointer}
+  .page-thumb.active{border:2px solid var(--signal);box-shadow:0 0 0 2px rgba(53,224,198,.15),0 4px 12px rgba(0,0,0,.25)}
+  .page-thumb canvas{display:block;width:100%;height:100%;object-fit:contain}.page-thumb .page-num{position:absolute;left:4px;bottom:3px;background:rgba(15,16,19,.72);color:#fff;border-radius:5px;padding:1px 4px;font:500 9px var(--font-mono)}
+  .page-nav-btn,.page-add-btn,.page-more-btn{width:32px;height:32px;border-radius:9px;background:rgba(255,255,255,.06);color:#fff;font-size:21px;display:flex;align-items:center;justify-content:center}.page-add-btn{background:var(--signal);color:#0b1715;font-size:22px;font-weight:700}.page-nav-btn:hover,.page-more-btn:hover{background:rgba(255,255,255,.13)}
+  .page-menu,.export-menu{position:fixed;z-index:40;display:none;min-width:180px;padding:6px;background:rgba(27,29,34,.98);border:1px solid rgba(255,255,255,.1);border-radius:12px;box-shadow:0 16px 38px rgba(0,0,0,.35);color:#fff}.page-menu.show,.export-menu.show{display:block}.page-menu button,.export-menu button{width:100%;text-align:left;padding:8px 10px;border-radius:8px;color:#e9ebf0;font-size:12px}.page-menu button:hover,.export-menu button:hover{background:rgba(255,255,255,.08)}.page-menu hr{border:0;border-top:1px solid rgba(255,255,255,.1);margin:5px 0}.export-menu{right:16px;top:62px}.export-title{padding:7px 10px 5px;color:#8e949f;font:600 10px var(--font-mono);text-transform:uppercase;letter-spacing:.08em}.export-menu button{display:flex;justify-content:space-between}.export-menu button span{color:#7f8793;font:500 9px var(--font-mono)}
+  .page-status{position:fixed;left:50%;top:calc(12px + env(safe-area-inset-top,0px));transform:translateX(-50%);z-index:9;padding:5px 11px;border-radius:999px;background:rgba(28,30,35,.78);color:#fff;font:500 11px var(--font-mono);backdrop-filter:blur(10px);pointer-events:none}.page-status b{color:var(--signal)}
+  .page-boundary{pointer-events:none}
+  @media(max-width:720px){.page-dock{bottom:calc(8px + env(safe-area-inset-bottom,0px));max-width:calc(100vw - 12px)}.page-strip{max-width:58vw}.page-thumb{flex-basis:48px;width:48px;height:62px}.export-menu{right:8px;top:64px}.page-status{top:calc(46px + env(safe-area-inset-top,0px))}}
+
 </style>
 </head>
 <body>
 
 <canvas id="c"></canvas>
+<div class="page-status" id="pageStatus">Page <b id="pageStatusNum">1</b> / <span id="pageStatusCount">1</span></div>
 
 <!-- Tools + brush panel -->
 <div class="panel panel-tools" id="toolPanel">
@@ -296,7 +339,6 @@
       <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
     </svg>
   </button>
-  <!-- clear canvas -->
   <button class="icon-btn" id="clearCanvasBtn" title="Clear Canvas">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
     Clear
@@ -357,9 +399,37 @@
 <textarea class="node-editor" id="nodeEditor" style="display:none" rows="1"></textarea>
 
 <div class="readout" id="readoutPanel">
-  <div class="brand">Infinite canvas</div>
+  <div class="brand">Vector Plane</div>
   <div class="row"><span>Zoom</span><b id="zoomReadout">100%</b></div>
   <div class="row"><span>Cursor</span><b id="coordReadout">X 0  Y 0</b></div>
+</div>
+
+
+<div class="page-dock" id="pageDock">
+  <button class="page-nav-btn" id="prevPageBtn" title="Previous page">‹</button>
+  <div class="page-strip" id="pageStrip"></div>
+  <button class="page-nav-btn" id="nextPageBtn" title="Next page">›</button>
+  <button class="page-add-btn" id="addPageBtn" title="Add page">+</button>
+  <button class="page-more-btn" id="pageMoreBtn" title="Page actions">•••</button>
+  <div class="page-menu" id="pageMenu">
+    <button id="duplicatePageBtn">Duplicate page</button>
+    <button id="renamePageBtn">Rename page</button>
+    <button id="deletePageBtn">Delete page</button>
+    <button id="movePageLeftBtn">Move left</button>
+    <button id="movePageRightBtn">Move right</button>
+    <hr>
+    <button id="fitPageBtn">Fit page</button>
+  </div>
+</div>
+
+<div class="export-menu" id="exportMenu">
+  <div class="export-title">Export pages</div>
+  <button data-export="current">Current page <span>PNG</span></button>
+  <button data-export="range">Page range… <span>ZIP</span></button>
+  <button data-export="written">All written pages <span>ZIP</span></button>
+  <button data-export="all">All pages <span>ZIP</span></button>
+  <button data-export="pdf-current">Current page <span>PDF</span></button>
+  <button data-export="pdf-range">Selected pages <span>PDF</span></button>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -368,22 +438,16 @@
 (function(){
   'use strict';
 
-  /* =========================================================================
-     VECTOR SKETCH — INFINITE CANVAS PROTOTYPE
-     -------------------------------------------------------------------------
-     Data model: every stroke is stored as resolution-agnostic world-space
-     data — an array of {x, y, p} points (p = normalized pressure 0..1) plus
-     a color and a base width. Nothing is ever rasterized into the source of
-     truth: the canvas is cleared and fully re-drawn from this vector data
-     every frame, through a camera transform matrix. That's what keeps lines
-     razor-sharp at any zoom level, and it's also what makes PNG/SVG export
-     trivial — export just replays the same data through a different matrix.
-     ========================================================================= */
+  /* VECTOR SKETCH — INFINITE CANVAS
+     Every stroke is stored as resolution-agnostic world-space data
+     ({x, y, p} points + color + base width). The canvas is fully redrawn
+     from this data every frame through a camera transform, which keeps
+     lines sharp at any zoom and makes PNG/SVG export a simple replay. */
 
   // ---- DOM ----------------------------------------------------------------
   const canvas = document.getElementById('c');
   const ctx = canvas.getContext('2d');
-  let dpr = window.devicePixelRatio || 1;
+  let dpr = Math.min(window.devicePixelRatio || 1, 2);
 
   const sizeSlider = document.getElementById('sizeSlider');
   const sizeValue  = document.getElementById('sizeValue');
@@ -400,57 +464,154 @@
   // ---- app state --------------------------------------------------------
   const SHAPE_TYPES = new Set(['rect','ellipse','triangle','arrow','node']);
   const state = {
-    tool: 'pen',            // 'pen' | 'highlighter' | 'eraser-stroke' | 'eraser-precision' | 'hand' | 'select' | shape tools | 'connector'
+    tool: 'pen',
     color: '#14151A',
-    baseWidth: 6,            // world units — pen brush diameter at full pressure
-    eraserRadius: 22,        // SCREEN pixels — kept constant on screen regardless of zoom
-    template: localStorage.getItem('canvas-template') || 'grid',
+    baseWidth: 6,
+    eraserRadius: 22,        // SCREEN pixels — constant on screen regardless of zoom
+    template: 'grid',
   };
 
   const camera = { panX: 0, panY: 0, zoom: 1 }; // world->screen: s = w*zoom + pan
 
   let snapTimer = null;
-  let strokes = [];          // the entire drawing (freehand strokes + shapes), in world space
-  let media = [];            // dropped-in PDFs / images: {id,kind:'image'|'pdf',dataURL,x,y,w,h}
-  let connectors = [];       // {id, fromId, toId} — anchors recomputed live from shape/media geometry
+  let strokes = [];          // freehand strokes + shapes, in world space
+  let media = [];            // imported PDFs / images: {id,kind,dataURL,x,y,w,h}
+  let connectors = [];       // {id, fromId, toId}
   let nextId = 1;
   const selectedIds = new Set();
-  const mediaImageCache = new Map(); // id -> HTMLImageElement, rebuilt from dataURL on load
+  const mediaImageCache = new Map();
+
+
+  // ---- paged document model -----------------------------------------------
+  const PAGE_WIDTH = 900, PAGE_HEIGHT = 1200, DOC_KEY = 'vector-plane-document-v3';
+  let pages = [], currentPageIndex = 0, nextPageId = 1, legacyMediaMigration = false;
+  function makePage(name, template='grid'){
+    return { id: nextPageId++, name: name || `Page ${pages.length + 1}`, template, strokes: [], media: [], connectors: [] };
+  }
+  function currentPage(){ return pages[currentPageIndex] || pages[0]; }
+  function syncArraysToPage(){
+    const p = currentPage(); if (!p) return;
+    p.strokes = strokes; p.media = media; p.connectors = connectors; p.template = state.template;
+  }
+  function activatePage(index, options={}){
+    if (!pages.length) pages=[makePage('Page 1','grid')];
+    syncArraysToPage();
+    currentPageIndex = clamp(index, 0, pages.length-1);
+    const p = currentPage();
+    strokes = p.strokes || []; media = p.media || []; connectors = p.connectors || [];
+    state.template = p.template || 'grid';
+    selectedIds.clear(); editingNodeId = null;
+    mediaImageCache.clear();
+    for (const m of media) { loadMediaImage(m); if (m.id >= nextId) nextId = m.id + 1; }
+    for (const s of strokes) if (s.id >= nextId) nextId = s.id + 1;
+    if (!options.keepView) fitPageToScreen();
+    refreshPageUI(); requestRenderNow();
+  }
+  function documentSnapshot(){
+    syncArraysToPage();
+    return JSON.parse(JSON.stringify({pages, currentPageIndex}));
+  }
+  function documentIsEmpty(){ return !pages.some(p => (p.strokes||[]).length || (p.media||[]).length); }
+  function pageIsWritten(p){ return !!((p.strokes||[]).length || (p.media||[]).length); }
+  function pageLabel(p,i){ return p.name || `Page ${i+1}`; }
+  function persistDocument(){
+    syncArraysToPage();
+    try { localStorage.setItem(DOC_KEY, JSON.stringify({version:3,pageSize:{width:PAGE_WIDTH,height:PAGE_HEIGHT},pages,currentPageIndex})); }
+    catch(e){ showToast('Saved in memory; browser storage is full'); }
+  }
+  function refreshPageUI(){
+    const strip=document.getElementById('pageStrip'); if(!strip) return;
+    strip.innerHTML='';
+    pages.forEach((p,i)=>{
+      for(const m of (p.media||[])) if(!mediaImageCache.has(m.id)) loadMediaImage(m);
+      const b=document.createElement('button'); b.className='page-thumb'+(i===currentPageIndex?' active':''); b.title=pageLabel(p,i); b.draggable=true; b.dataset.index=i;
+      const mini=document.createElement('canvas'); mini.width=116; mini.height=148; b.appendChild(mini);
+      const n=document.createElement('span'); n.className='page-num'; n.textContent=i+1; b.appendChild(n); strip.appendChild(b);
+      renderThumbnail(p,mini,i);
+      b.addEventListener('click',()=>activatePage(i));
+      b.addEventListener('dragstart',e=>{e.dataTransfer.setData('text/plain',String(i));});
+      b.addEventListener('dragover',e=>e.preventDefault());
+      b.addEventListener('drop',e=>{e.preventDefault(); const from=Number(e.dataTransfer.getData('text/plain')),to=i; if(Number.isInteger(from)&&from!==to) movePage(from,to);});
+    });
+    const num=document.getElementById('pageStatusNum'), count=document.getElementById('pageStatusCount'); if(num) num.textContent=currentPageIndex+1; if(count) count.textContent=pages.length;
+    const prev=document.getElementById('prevPageBtn'), next=document.getElementById('nextPageBtn'); if(prev) prev.disabled=currentPageIndex===0; if(next) next.disabled=currentPageIndex===pages.length-1;
+    const active=strip.querySelector('.active'); if(active) active.scrollIntoView({block:'nearest',inline:'center'});
+  }
+  function renderThumbnail(page, mini, pageIndex){
+    const c=mini.getContext('2d'), sx=mini.width/PAGE_WIDTH, sy=mini.height/PAGE_HEIGHT, sc=Math.min(sx,sy), ox=(mini.width-PAGE_WIDTH*sc)/2, oy=(mini.height-PAGE_HEIGHT*sc)/2;
+    c.clearRect(0,0,mini.width,mini.height); c.fillStyle=isDarkMode?'#121316':'#fff'; c.fillRect(0,0,mini.width,mini.height); c.save(); c.translate(ox,oy); c.scale(sc,sc);
+    c.fillStyle=isDarkMode?'#121316':'#fff'; c.fillRect(0,0,PAGE_WIDTH,PAGE_HEIGHT);
+    c.strokeStyle=isDarkMode?'rgba(255,255,255,.18)':'rgba(20,21,26,.1)'; c.lineWidth=1/sc; c.strokeRect(.5,.5,PAGE_WIDTH-1,PAGE_HEIGHT-1);
+    if(page.template!=='blank'){
+      c.save(); const oldTemplate=state.template; state.template=page.template; const oldW=window.innerWidth, oldH=window.innerHeight;
+      // lightweight notebook grid for thumbnails
+      c.globalAlpha=.45; const step=page.template==='dots'?24:40; c.fillStyle=isDarkMode?'rgba(255,255,255,.12)':'rgba(20,21,26,.08)';
+      if(page.template==='dots'){for(let x=20;x<PAGE_WIDTH;x+=step)for(let y=20;y<PAGE_HEIGHT;y+=step)c.beginPath(),c.arc(x,y,1.1,0,Math.PI*2),c.fill();}
+      else {for(let x=0;x<=PAGE_WIDTH;x+=step){c.fillRect(x,0,1,PAGE_HEIGHT);}for(let y=0;y<=PAGE_HEIGHT;y+=step){c.fillRect(0,y,PAGE_WIDTH,1);}}
+      state.template=oldTemplate; void oldW; void oldH; c.restore();
+    }
+    const oldCtx=ctx; // drawing helpers accept any target context
+    for(const m of (page.media||[])){ const img=mediaImageCache.get(m.id); if(img&&img.complete&&img.naturalWidth){c.drawImage(img,m.x,m.y,m.w,m.h);} }
+    for(const s of (page.strokes||[])){ if(s.type&&SHAPE_TYPES.has(s.type)) drawShapeItem(c,s); else drawStroke(c,s); }
+    c.restore();
+  }
+  function addPage(template=state.template, name){
+    syncArraysToPage(); pushHistory();
+    const p={id:nextPageId++,name:name||`Page ${pages.length+1}`,template,strokes:[],media:[],connectors:[]};
+    pages.splice(currentPageIndex+1,0,p); activatePage(currentPageIndex+1); persistDocument(); showToast('New page added');
+  }
+  function duplicatePage(){ syncArraysToPage(); pushHistory(); const copy=JSON.parse(JSON.stringify(currentPage())); copy.id=nextPageId++; copy.name=pageLabel(currentPage(),currentPageIndex)+' copy'; pages.splice(currentPageIndex+1,0,copy); activatePage(currentPageIndex+1); persistDocument(); }
+  function renamePage(){ const p=currentPage(); const n=prompt('Page name',p.name||`Page ${currentPageIndex+1}`); if(n&&n.trim()){pushHistory();p.name=n.trim().slice(0,60);refreshPageUI();persistDocument();} }
+  function deletePage(){ if(pages.length===1){ if(!confirm('Delete everything on this page?')) return; pushHistory(); pages[0]=makePage('Page 1',state.template); pages.length=1; nextPageId=Math.max(nextPageId,pages[0].id+1); activatePage(0); persistDocument(); return; } if(!confirm(`Delete ${pageLabel(currentPage(),currentPageIndex)}?`)) return; pushHistory(); pages.splice(currentPageIndex,1); currentPageIndex=Math.max(0,currentPageIndex-1); activatePage(currentPageIndex); persistDocument(); }
+  function movePage(from,to){ syncArraysToPage(); if(from<0||to<0||from>=pages.length||to>=pages.length||from===to)return; pushHistory(); const [p]=pages.splice(from,1); pages.splice(to,0,p); currentPageIndex=to; activatePage(to,{keepView:true}); persistDocument(); }
+  function fitPageToScreen(){ const pad=70; const zx=(window.innerWidth-pad*2)/PAGE_WIDTH, zy=(window.innerHeight-pad*2)/PAGE_HEIGHT; camera.zoom=clamp(Math.min(zx,zy),MIN_ZOOM,MAX_ZOOM); camera.panX=(window.innerWidth-PAGE_WIDTH*camera.zoom)/2; camera.panY=(window.innerHeight-PAGE_HEIGHT*camera.zoom)/2; requestRenderNow(); }
 
   // interaction state
-  const activePointers = new Map(); // pointerId -> {x,y} in screen space
+  const activePointers = new Map();
   let panState = null;
   let currentStroke = null, lastDrawPoint = null;
-  let erasing = null;         // { mode: 'stroke' | 'precision' }
-  let selectDrag = null;      // { lastWorld, historyPushed, resizingId }
-  let rubberBand = null;      // { startWorld, curWorld }
+  let erasing = null;
+  let selectDrag = null;
+  let rubberBand = null;
   let pinch = null;
   let spaceDown = false;
   let lastPointerScreen = null;
-  let shapeDraft = null;      // { type, start, end } — live preview while dragging a shape tool
-  let connectorDraft = null;  // { fromId, curWorld }
+  let shapeDraft = null;
+  let connectorDraft = null;
   let editingNodeId = null;
 
   let history = [], future = [];
   let needsRender = true;
 
-  // load memory in browser
+  // ---- local persistence ----------------------------------------------------
   function loadLocalStrokes() {
-  const saved = localStorage.getItem('infinite-canvas-save');
-  if (saved) strokes = JSON.parse(saved);
-  const savedConn = localStorage.getItem('infinite-canvas-connectors');
-  if (savedConn) { try { connectors = JSON.parse(savedConn); } catch(e){ connectors = []; } }
-}
-  function saveLocalStrokes(){
-    localStorage.setItem('infinite-canvas-save', JSON.stringify(strokes));
-    localStorage.setItem('infinite-canvas-connectors', JSON.stringify(connectors));
+    legacyMediaMigration=false;
+    try {
+      const raw=localStorage.getItem(DOC_KEY);
+      if(raw){
+        const parsed=JSON.parse(raw);
+        if(parsed && Array.isArray(parsed.pages)){
+          pages=parsed.pages.map((p,i)=>({id:p.id||i+1,name:p.name||`Page ${i+1}`,template:p.template||'grid',strokes:p.strokes||[],media:p.media||[],connectors:p.connectors||[]}));
+          currentPageIndex=clamp(Number(parsed.currentPageIndex)||0,0,pages.length-1);
+          nextPageId=Math.max(1,...pages.map(p=>Number(p.id)||0))+1;
+          const p=pages[currentPageIndex]; strokes=p.strokes||[];media=p.media||[];connectors=p.connectors||[];state.template=p.template||'grid';
+          return;
+        }
+      }
+    } catch(e){}
+    // Migrate the original Vector Plane / Infinite Canvas save into Page 1.
+    pages=[{id:1,name:'Page 1',template:localStorage.getItem('canvas-template')||'grid',strokes:[],media:[],connectors:[]}]; currentPageIndex=0; nextPageId=2;
+    try { const saved=localStorage.getItem('infinite-canvas-save'); if(saved) pages[0].strokes=JSON.parse(saved)||[]; } catch(e){}
+    try { const saved=localStorage.getItem('infinite-canvas-connectors'); if(saved) pages[0].connectors=JSON.parse(saved)||[]; } catch(e){}
+    strokes=pages[0].strokes; media=[]; connectors=pages[0].connectors; state.template=pages[0].template; legacyMediaMigration=true;
   }
+  let saveTimer = null;
+  function saveNow(){ persistDocument(); }
+  function saveLocalStrokes(){ syncArraysToPage(); refreshPageUI(); clearTimeout(saveTimer); saveTimer=setTimeout(saveNow,400); }
+  window.addEventListener('pagehide', saveNow);
+  document.addEventListener('visibilitychange',()=>{if(document.hidden)saveNow();});
 
-  // ---- IndexedDB: persistent store for imported media (PDF pages / images) --
-  // localStorage is unsuitable for this (5-10MB quota, easily blown by a
-  // couple of scanned pages) so large raster payloads live in IndexedDB while
-  // vector data (strokes/shapes/connectors) keeps using the existing
-  // localStorage path above, untouched for backward compatibility.
+  // ---- IndexedDB: persistent store for imported media ----------------------
   const IDB_NAME = 'infinite-canvas-db', IDB_STORE = 'media', IDB_VERSION = 1;
   let idbPromise = null;
   function openIDB(){
@@ -498,17 +659,14 @@
     idbPutMedia({ id:item.id, kind:item.kind, dataURL:item.dataURL, x:item.x, y:item.y, w:item.w, h:item.h });
   }
   async function loadLocalMedia(){
-    const items = await idbLoadAllMedia();
-    for (const it of items){
-      media.push(it);
-      loadMediaImage(it);
-      if (it.id >= nextId) nextId = it.id + 1;
-    }
-    requestRenderNow();
+    if(!legacyMediaMigration) return;
+    const items=await idbLoadAllMedia();
+    for(const it of items){ media.push(it); loadMediaImage(it); if(it.id>=nextId)nextId=it.id+1; }
+    legacyMediaMigration=false; syncArraysToPage(); persistDocument(); requestRenderNow();
   }
   function loadMediaImage(item){
     const img = new Image();
-    img.onload = () => requestRenderNow();
+    img.onload = () => { requestRenderNow(); if (typeof refreshPageUI === 'function') refreshPageUI(); }
     img.src = item.dataURL;
     mediaImageCache.set(item.id, img);
   }
@@ -535,9 +693,6 @@
     return [e];
   }
 
-  // ---- Catmull-Rom spline interpolation for smooth strokes ----
-    
-
   // ---- camera transform ----------------------------------------------------
   function screenToWorld(sx, sy){
     return { x: (sx - camera.panX) / camera.zoom, y: (sy - camera.panY) / camera.zoom };
@@ -552,12 +707,7 @@
     camera.panY = sy - before.y * camera.zoom;
     requestRenderNow();
   }
-  function resetView(){
-    camera.zoom = 1;
-    camera.panX = window.innerWidth / 2;
-    camera.panY = window.innerHeight / 2;
-    requestRenderNow();
-  }
+  function resetView(){ fitPageToScreen(); }
 
   // ---- stroke geometry helpers ---------------------------------------------
   function pressureToWidth(stroke, p){
@@ -575,9 +725,6 @@
     }
     return { minX, minY, maxX, maxY };
   }
-  // Shapes (rect/ellipse/triangle/arrow/node) store their geometry as plain
-  // world-space corner/vertex points with no per-point pressure, so their
-  // bbox is just a min/max sweep with a small padding for the stroke width.
   function getShapeBBox(shape){
     let minX=Infinity, minY=Infinity, maxX=-Infinity, maxY=-Infinity;
     for (const pt of shape.points){
@@ -590,8 +737,6 @@
   function getMediaBBox(item){
     return { minX:item.x, minY:item.y, maxX:item.x+item.w, maxY:item.y+item.h };
   }
-  // Unified bbox lookup across the three item kinds (freehand/shape items
-  // live in `strokes`, raster items live in `media`).
   function getItemBBox(item){
     return (item.kind === 'image' || item.kind === 'pdf') ? getMediaBBox(item) : getStrokeBBox(item);
   }
@@ -642,8 +787,6 @@
     const b = getShapeBBox(shape);
     return [{x:(b.minX+b.maxX)/2, y:b.minY}, {x:b.minX, y:b.maxY}, {x:b.maxX, y:b.maxY}];
   }
-  // Hit-test for shape items (rect/ellipse/triangle/arrow/node) — filled
-  // interior for rect/ellipse/triangle/node, tolerance-band for arrow's line.
   function hitTestShape(shape, p, tol){
     const b = getShapeBBox(shape);
     switch(shape.type){
@@ -671,8 +814,6 @@
     }
     return null;
   }
-  // Combined hit-test used by the select/connector tools: checks shapes and
-  // media (topmost first) before falling back to freehand stroke hit-testing.
   function hitTestItem(p){
     const tol = 6/camera.zoom;
     for (let i = strokes.length-1; i >= 0; i--){
@@ -685,8 +826,6 @@
     }
     return null;
   }
-  // Only shapes/nodes/media can anchor a connector (freehand ink has no
-  // stable "edge" to clip a line to).
   function hitTestAnchorable(p){
     const tol = 6/camera.zoom;
     for (let i = strokes.length-1; i >= 0; i--){
@@ -699,10 +838,7 @@
     return null;
   }
 
-  // Precision eraser: true vector path-splitting. Points inside the eraser
-  // circle (or segments passing through it) are removed; the remaining
-  // contiguous runs become brand new strokes. No compositing tricks — the
-  // underlying path data is genuinely cut, so it exports perfectly too.
+  // Precision eraser: true vector path-splitting.
   function makeSubStroke(orig, pts){
     return { id: nextId++, color: orig.color, baseWidth: orig.baseWidth, points: pts.slice() };
   }
@@ -731,9 +867,6 @@
   }
   function applyEraseAt(center, mode){
     const r = state.eraserRadius / camera.zoom;
-    // Shapes/nodes have no meaningful "path" to vector-split, so both eraser
-    // modes simply remove the whole shape when touched; only genuine
-    // freehand ink gets true vector path-splitting under the precision eraser.
     if (mode === 'stroke'){
       strokes = strokes.filter(s => {
         if (s.type && SHAPE_TYPES.has(s.type)) return !hitTestShape(s, center, r + 2/camera.zoom);
@@ -756,7 +889,6 @@
       const a = anchorPoint(from).center, b = anchorPoint(to).center;
       return distToSegment(center, a, b) > r;
     });
-    const beforeCount = media.length;
     media = media.filter(m => {
       const b = getMediaBBox(m);
       const closestX = clamp(center.x, b.minX, b.maxX), closestY = clamp(center.y, b.minY, b.maxY);
@@ -769,52 +901,28 @@
   }
 
   // ---- history (undo/redo) -------------------------------------------------
-  // Snapshots cover strokes+shapes, media placement, and connectors so that
-  // moving/deleting any item type (not just freehand ink) is undoable.
-  function snapshot(){
-    return {
-      strokes: strokes.map(s => ({ id:s.id, type:s.type, color:s.color, baseWidth:s.baseWidth, text:s.text,
-        points: s.points.map(p => ({x:p.x,y:p.y,p:p.p})) })),
-      media: media.map(m => ({ id:m.id, kind:m.kind, dataURL:m.dataURL, x:m.x, y:m.y, w:m.w, h:m.h })),
-      connectors: connectors.map(c => ({ id:c.id, fromId:c.fromId, toId:c.toId })),
-    };
-  }
+  function snapshot(){ return documentSnapshot(); }
   function restoreSnapshot(snap){
-    strokes = snap.strokes;
-    media = snap.media;
-    connectors = snap.connectors;
-    for (const m of media) if (!mediaImageCache.has(m.id)) loadMediaImage(m);
+    if(snap && Array.isArray(snap.pages)){
+      pages=JSON.parse(JSON.stringify(snap.pages)); currentPageIndex=clamp(Number(snap.currentPageIndex)||0,0,pages.length-1); nextPageId=Math.max(1,...pages.map(p=>Number(p.id)||0))+1;
+      const p=pages[currentPageIndex]; strokes=p.strokes||[];media=p.media||[];connectors=p.connectors||[];state.template=p.template||'grid'; mediaImageCache.clear(); for(const m of media)loadMediaImage(m);
+    } else { strokes=snap.strokes||[];media=snap.media||[];connectors=snap.connectors||[]; syncArraysToPage(); }
+    selectedIds.clear(); persistDocument(); refreshPageUI(); requestRenderNow();
   }
-  function pushHistory(){
-    history.push(snapshot());
-    if (history.length > HISTORY_LIMIT) history.shift();
-    future = [];
-  }
-  function undo(){
-    if (!history.length) return;
-    future.push(snapshot());
-    restoreSnapshot(history.pop());
-    selectedIds.clear();
-    requestRenderNow();
-  }
-  function redo(){
-    if (!future.length) return;
-    history.push(snapshot());
-    restoreSnapshot(future.pop());
-    selectedIds.clear();
-    requestRenderNow();
-  }
+  function pushHistory(){ history.push(snapshot()); if(history.length>HISTORY_LIMIT)history.shift(); future=[]; }
+  function undo(){ if(!history.length)return; future.push(snapshot()); restoreSnapshot(history.pop()); }
+  function redo(){ if(!future.length)return; history.push(snapshot()); restoreSnapshot(future.pop()); }
 
   // ---- drawing (pen) --------------------------------------------------------
   function normalizedPressure(e){
     if (e.pointerType === 'pen' && e.pressure > 0) return e.pressure;
-    return 0.5; // mouse / touch / unsupported hardware
+    return 0.5;
   }
   function startStroke(e){
     pushHistory();
     const p = screenToWorld(e.clientX, e.clientY);
     const isHighlighter = state.tool === 'highlighter';
-    const pressure = isHighlighter ? 1 : normalizedPressure(e); // flat width for highlighter
+    const pressure = isHighlighter ? 1 : normalizedPressure(e);
     currentStroke = { id: nextId++, type: isHighlighter ? 'highlighter' : 'stroke',
       color: state.color, baseWidth: isHighlighter ? state.baseWidth*2.6 : state.baseWidth,
       points: [{x:p.x,y:p.y,p:pressure}] };
@@ -823,29 +931,23 @@
     requestRenderNow();
   }
   function moveStroke(e){
-  const minDist = 1.2 / camera.zoom;
-  const isHighlighter = currentStroke.type === 'highlighter';
-  for (const ev of getEvents(e)){
-    const p = screenToWorld(ev.clientX, ev.clientY);
-    if (Math.hypot(p.x-lastDrawPoint.x, p.y-lastDrawPoint.y) < minDist) continue;
-    currentStroke.points.push({ x:p.x, y:p.y, p: isHighlighter ? 1 : normalizedPressure(ev) });
-    lastDrawPoint = p;
+    const minDist = 1.2 / camera.zoom;
+    const isHighlighter = currentStroke.type === 'highlighter';
+    for (const ev of getEvents(e)){
+      const p = screenToWorld(ev.clientX, ev.clientY);
+      if (Math.hypot(p.x-lastDrawPoint.x, p.y-lastDrawPoint.y) < minDist) continue;
+      currentStroke.points.push({ x:p.x, y:p.y, p: isHighlighter ? 1 : normalizedPressure(ev) });
+      lastDrawPoint = p;
+    }
+    // Highlighter strokes stay exactly as drawn (excluded from auto-snap).
+    if (isHighlighter){ requestRenderNow(); return; }
+    clearTimeout(snapTimer);
+    snapTimer = setTimeout(() => { snapCurrentStroke(); }, 600);
+    requestRenderNow();
   }
 
-  // Highlighter strokes are meant to stay exactly as drawn (underlining /
-  // highlighting text), so they're excluded from auto-snap entirely.
-  if (isHighlighter){ requestRenderNow(); return; }
-
-  clearTimeout(snapTimer);
-  snapTimer = setTimeout(() => { snapCurrentStroke(); }, 600);
-
-  requestRenderNow();
-}
-
-  // Auto-snap classifier for the freehand pen: recognizes a closed loop as
-  // a circle/ellipse, rectangle, or triangle (by corner count after RDP
-  // simplification), an open path as a straight line, and an open path with
-  // a sharp direction-reversal near one end as an arrow.
+  // Auto-snap classifier: closed loop -> circle/ellipse/rectangle/triangle,
+  // open path -> straight line, open path with sharp end reversal -> arrow.
   function rdpSimplify(points, epsilon){
     if (points.length < 3) return points.slice();
     let maxD = 0, idx = 0;
@@ -861,7 +963,7 @@
     }
     return [first, last];
   }
-  function angleBetween(a, b, c){ // angle at point b, formed by a-b-c, radians
+  function angleBetween(a, b, c){
     const v1 = {x:a.x-b.x, y:a.y-b.y}, v2 = {x:c.x-b.x, y:c.y-b.y};
     const m1 = Math.hypot(v1.x,v1.y)||1, m2 = Math.hypot(v2.x,v2.y)||1;
     const cos = clamp((v1.x*v2.x+v1.y*v2.y)/(m1*m2), -1, 1);
@@ -881,13 +983,10 @@
 
     if (closed){
       const simplified = rdpSimplify(pts, bboxDiag*0.055);
-      const corners = simplified.length - 1; // first===~last for a closed loop
+      const corners = simplified.length - 1;
       if (corners === 3){
         const v = simplified.slice(0,3);
         currentStroke.type = 'triangle';
-        currentStroke.points = [{x:v[0].x,y:v[0].y}, {x:v[2].x,y:v[2].y}]; // stored as bbox-driving pair
-        // triangleVertices() derives the actual shape from the bbox, so
-        // just make sure the bbox spans the recognized corners:
         const bx0 = Math.min(v[0].x,v[1].x,v[2].x), bx1 = Math.max(v[0].x,v[1].x,v[2].x);
         const by0 = Math.min(v[0].y,v[1].y,v[2].y), by1 = Math.max(v[0].y,v[1].y,v[2].y);
         currentStroke.points = [{x:bx0,y:by0},{x:bx1,y:by1}];
@@ -923,11 +1022,11 @@
     }
     requestRenderNow();
   }
-  function endStroke(){ 
-  clearTimeout(snapTimer);
-  currentStroke = null; 
-  lastDrawPoint = null; 
-}
+  function endStroke(){
+    clearTimeout(snapTimer);
+    currentStroke = null;
+    lastDrawPoint = null;
+  }
 
   // ---- erasing ----------------------------------------------------------
   function startErase(e, mode){
@@ -951,7 +1050,6 @@
   }
   function startSelect(e){
     const p = screenToWorld(e.clientX, e.clientY);
-    // Resize handle takes priority when exactly one media item is selected.
     if (selectedIds.size === 1){
       const only = media.find(m => selectedIds.has(m.id));
       if (only && mediaResizeHandleHit(p, only)){
@@ -1003,8 +1101,6 @@
   function endSelect(){ selectDrag = null; rubberBand = null; requestRenderNow(); }
 
   // ---- shape tools (rect/ellipse/triangle/arrow/node) ----------------------
-  // Excalidraw-style drag-to-create: click, drag to size, release to commit.
-  // Nodes are placed at a default size immediately (double-click to rename).
   function startShapeDraft(e){
     const p = screenToWorld(e.clientX, e.clientY);
     shapeDraft = { type: state.tool, start: p, end: p };
@@ -1030,14 +1126,14 @@
       requestRenderNow();
       return;
     }
-    if (w < 3/camera.zoom && h < 3/camera.zoom && type !== 'arrow'){ requestRenderNow(); return; } // too small to matter
+    if (w < 3/camera.zoom && h < 3/camera.zoom && type !== 'arrow'){ requestRenderNow(); return; }
     const shape = { id: nextId++, type, color: state.color, baseWidth: state.baseWidth,
       points: [{x:start.x,y:start.y}, {x:end.x,y:end.y}] };
     strokes.push(shape);
     requestRenderNow();
   }
 
-  // ---- text node text editing -------------------------------------------
+  // ---- text node editing -------------------------------------------
   function openNodeEditor(node){
     editingNodeId = node.id;
     const b = getShapeBBox(node);
@@ -1119,7 +1215,14 @@
     camera.panY = mid.y - pinch.startMidWorld.y * camera.zoom;
     requestRenderNow();
   }
+  // Discards the tiny stray stroke the first finger started before the
+  // second finger landed, so pinching doesn't leave dots behind.
   function cancelActiveActions(){
+    if (currentStroke && currentStroke.points.length < 4){
+      strokes = strokes.filter(s => s !== currentStroke);
+      history.pop();
+    }
+    clearTimeout(snapTimer);
     panState = null; currentStroke = null; erasing = null; selectDrag = null; rubberBand = null;
     shapeDraft = null; connectorDraft = null;
   }
@@ -1156,7 +1259,6 @@
     document.body.classList.toggle('dark-mode', isDarkMode);
     const icon = document.getElementById('themeIcon');
     if (icon) {
-      // Swaps between Sun and Moon SVG icons
       icon.innerHTML = isDarkMode
         ? '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>'
         : '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>';
@@ -1165,21 +1267,13 @@
   }
 
   function getStrokeColor(color) {
-  if (!isDarkMode) return color;
-  const c = color.toLowerCase();
-  // Inverts black or near-black ink to white in dark mode
-  if (c === '#000000' || c === '#14151a' || c === '#121316' || c === 'black') {
-    return '#ffffff';
+    if (!isDarkMode) return color;
+    const c = color.toLowerCase();
+    if (c === '#000000' || c === '#14151a' || c === '#121316' || c === 'black') return '#ffffff';
+    return color;
   }
-  return color;
-}
 
-  // ---- Dynamic Grid & Render ----
-  // Smart canvas templates: every renderer below repeats/scales automatically
-  // across the infinite workspace because it's driven off the current
-  // world-space viewport (topLeft/bottomRight), the same pattern the
-  // original blueprint grid used — panning/zooming "just works" for all of
-  // them with no special-casing.
+  // ---- Paper templates (all driven off the world-space viewport) ----
   function drawBlueprintGrid(theme, topLeft, bottomRight){
     const spacing = niceGridSpacing(camera.zoom, 90);
     const majorEvery = 5;
@@ -1245,9 +1339,6 @@
     ctx.beginPath(); ctx.moveTo(marginX, topLeft.y); ctx.lineTo(marginX, bottomRight.y); ctx.stroke();
   }
   function drawCornell(theme, topLeft, bottomRight){
-    // Cue column on the left, a summary band along the bottom, notes ruled
-    // in between — repeated per "page band" so it tiles down an infinite
-    // scroll of notes the way a Cornell pad does per-sheet.
     const pageH = 900, cueW = 220, summaryH = 130;
     ctx.lineWidth = 1.4 / camera.zoom;
     ctx.strokeStyle = theme.gridMajor;
@@ -1284,15 +1375,14 @@
         ctx.stroke();
       }
     }
-    // vertical lines complete the classic isometric trio
     const startI = Math.floor(topLeft.x/spacing);
     for (let i=startI; i*spacing < bottomRight.x+spacing; i++){
       ctx.beginPath(); ctx.moveTo(i*spacing, topLeft.y); ctx.lineTo(i*spacing, bottomRight.y); ctx.stroke();
     }
   }
   function drawStaves(theme, topLeft, bottomRight){
-    const lineGap = 14, staveGap = 110, staveH = lineGap*4;
-    ctx.lineWidth = Math.max(1, 1.1/camera.zoom) ;
+    const lineGap = 14, staveGap = 110;
+    ctx.lineWidth = Math.max(1, 1.1/camera.zoom);
     ctx.strokeStyle = theme.gridMajor;
     const startStave = Math.floor(topLeft.y / staveGap), endStave = Math.floor(bottomRight.y / staveGap);
     for (let s = startStave; s <= endStave; s++){
@@ -1308,17 +1398,13 @@
     cornell: drawCornell, isometric: drawIsometric, staves: drawStaves, blank: null,
   };
   function drawGrid(){
-    const theme = getThemeColors();
-    const topLeft = screenToWorld(0, 0);
-    const bottomRight = screenToWorld(window.innerWidth, window.innerHeight);
-    const renderer = TEMPLATE_RENDERERS[state.template] || drawBlueprintGrid;
-    if (!renderer) return;
-    ctx.save();
-    renderer(theme, topLeft, bottomRight);
-    ctx.restore();
+    const theme=getThemeColors(), renderer=TEMPLATE_RENDERERS[state.template]||drawBlueprintGrid;
+    if(!renderer)return;
+    ctx.save(); renderer(theme,{x:0,y:0},{x:PAGE_WIDTH,y:PAGE_HEIGHT}); ctx.restore();
+    ctx.save(); ctx.strokeStyle=isDarkMode?'rgba(255,255,255,.18)':'rgba(20,21,26,.13)'; ctx.lineWidth=1/camera.zoom; ctx.strokeRect(.5,.5,PAGE_WIDTH-1,PAGE_HEIGHT-1); ctx.restore();
   }
 
-  // ---- shape rendering (rect/ellipse/triangle/arrow/node) -------------------
+  // ---- shape rendering ----
   function drawShapeItem(targetCtx, shape){
     const b = getShapeBBox(shape);
     targetCtx.save();
@@ -1419,18 +1505,14 @@
     ctx.setLineDash([]);
     if (selectedIds.size === 1){
       const r = 5/camera.zoom;
-      ctx.fillStyle = 'var(--signal)';
       ctx.fillStyle = '#35E0C6';
       ctx.beginPath(); ctx.arc(item.x+item.w, item.y+item.h, r, 0, Math.PI*2); ctx.fill();
     }
     ctx.restore();
   }
 
-  // ---- connectors: recomputed live from current shape/media geometry, so
-  // moving an anchored shape with the select tool keeps the line attached
-  // with no extra bookkeeping. ------------------------------------------
+  // ---- connectors: recomputed live from current shape/media geometry ----
   function clipToBBox(from, to, b){
-    // Walk from `from` toward `to`, stop where the segment crosses the bbox edge.
     const cx=(b.minX+b.maxX)/2, cy=(b.minY+b.maxY)/2;
     const dx = from.x-cx, dy = from.y-cy;
     const hw=(b.maxX-b.minX)/2||0.01, hh=(b.maxY-b.minY)/2||0.01;
@@ -1496,34 +1578,27 @@
     targetCtx.lineJoin = 'round';
 
     if (pts.length === 1) {
-      // Single point (dot)
       const r = pressureToWidth(stroke, pts[0].p) / 2;
       targetCtx.beginPath();
       targetCtx.arc(pts[0].x, pts[0].y, r, 0, Math.PI * 2);
       targetCtx.fill();
     } else if (pts.length === 2) {
-      // Two points (simple straight line)
       targetCtx.lineWidth = (pressureToWidth(stroke, pts[0].p) + pressureToWidth(stroke, pts[1].p)) / 2;
       targetCtx.beginPath();
       targetCtx.moveTo(pts[0].x, pts[0].y);
       targetCtx.lineTo(pts[1].x, pts[1].y);
       targetCtx.stroke();
     } else {
-      // 3+ points: Draw a smooth, single quadratic curve path
       const avgPressure = pts.reduce((sum, pt) => sum + pt.p, 0) / pts.length;
       targetCtx.lineWidth = pressureToWidth(stroke, avgPressure);
 
       targetCtx.beginPath();
       targetCtx.moveTo(pts[0].x, pts[0].y);
-
       for (let i = 1; i < pts.length - 1; i++) {
         const midX = (pts[i].x + pts[i + 1].x) / 2;
         const midY = (pts[i].y + pts[i + 1].y) / 2;
-        // Use the raw point as control point, curve toward midPoint
         targetCtx.quadraticCurveTo(pts[i].x, pts[i].y, midX, midY);
       }
-
-      // Connect to the final point
       targetCtx.lineTo(pts[pts.length - 1].x, pts[pts.length - 1].y);
       targetCtx.stroke();
     }
@@ -1574,28 +1649,18 @@
   }
 
   function render(){
-    const theme = getThemeColors();
-    ctx.setTransform(1,0,0,1,0,0);
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    // "Blank" is meant as true blank paper (e.g. for a clean PDF/image
-    // annotation surface) regardless of app theme, so it overrides the
-    // usual dark/light paper color instead of inheriting it.
-    ctx.fillStyle = state.template === 'blank' ? '#FFFFFF' : theme.paper;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    ctx.setTransform(dpr*camera.zoom, 0, 0, dpr*camera.zoom, dpr*camera.panX, dpr*camera.panY);
-    drawGrid();
-    for (const m of media) drawMediaItem(ctx, m);          // raster layer (PDF pages / images) sits under ink
-    drawConnectors(ctx);                                    // connectors under shapes/ink, above media
-    for (const s of strokes) drawStroke(ctx, s);            // freehand ink + shapes on top
-    drawShapeDraftPreview(ctx);
-    for (const s of strokes) if (selectedIds.has(s.id)) drawSelectionOutline(s);
-    for (const m of media) if (selectedIds.has(m.id)) drawMediaSelectionUI(m);
-    if (rubberBand) drawRubberBand();
-
-    ctx.setTransform(dpr,0,0,dpr,0,0);
-    drawEraserPreview();
-    ctx.setTransform(1,0,0,1,0,0);
+    const theme=getThemeColors();
+    ctx.setTransform(1,0,0,1,0,0); ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.fillStyle=isDarkMode?'#0d0f12':'#cfd2d9'; ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.save(); ctx.setTransform(dpr*camera.zoom,0,0,dpr*camera.zoom,dpr*camera.panX,dpr*camera.panY);
+    // subtle page shadow
+    ctx.fillStyle='rgba(0,0,0,.18)'; ctx.fillRect(10,10,PAGE_WIDTH,PAGE_HEIGHT);
+    ctx.beginPath(); ctx.rect(0,0,PAGE_WIDTH,PAGE_HEIGHT); ctx.clip();
+    ctx.fillStyle=state.template==='blank' ? '#FFFFFF' : (isDarkMode?'#121316':'#FFFFFF'); ctx.fillRect(0,0,PAGE_WIDTH,PAGE_HEIGHT);
+    drawGrid(); for(const m of media)drawMediaItem(ctx,m); drawConnectors(ctx); for(const s of strokes)drawStroke(ctx,s);
+    drawShapeDraftPreview(ctx); for(const s of strokes)if(selectedIds.has(s.id))drawSelectionOutline(s); for(const m of media)if(selectedIds.has(m.id))drawMediaSelectionUI(m); if(rubberBand)drawRubberBand();
+    ctx.restore();
+    ctx.setTransform(dpr,0,0,dpr,0,0); drawEraserPreview(); ctx.setTransform(1,0,0,1,0,0);
   }
 
   // ---- Listener & Init wiring ----
@@ -1613,6 +1678,12 @@
       coordReadout.textContent = 'X ' + w.x.toFixed(0) + '  Y ' + w.y.toFixed(0);
     }
   }
+  // Lightweight cursor readout update that doesn't repaint the canvas.
+  function updateCoordReadout(){
+    if (!lastPointerScreen) return;
+    const w = screenToWorld(lastPointerScreen.x, lastPointerScreen.y);
+    coordReadout.textContent = 'X ' + w.x.toFixed(0) + '  Y ' + w.y.toFixed(0);
+  }
   function frameLoop(){
     if (needsRender){ render(); needsRender = false; updateReadouts(); }
     requestAnimationFrame(frameLoop);
@@ -1620,7 +1691,7 @@
 
   // ---- resize -----------------------------------------------------------
   function resize(){
-    dpr = window.devicePixelRatio || 1;
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
     canvas.width  = Math.round(window.innerWidth * dpr);
     canvas.height = Math.round(window.innerHeight * dpr);
     canvas.style.width  = window.innerWidth + 'px';
@@ -1707,10 +1778,15 @@
       const p = screenToWorld(e.clientX, e.clientY);
       canvas.classList.toggle('resize-cursor', !!(only && mediaResizeHandleHit(p, only)));
     }
-    requestRenderNow(); // keep eraser-radius preview & coord readout live even when idle
+    // Only repaint when idle if the eraser preview circle needs to follow
+    // the cursor; otherwise just update the coordinate text.
+    if (state.tool === 'eraser-stroke' || state.tool === 'eraser-precision') requestRenderNow();
+    else updateCoordReadout();
   });
 
+  let lastTap = null;
   function onPointerEnd(e){
+    const movedMedia = !!(selectDrag && selectDrag.historyPushed);
     activePointers.delete(e.pointerId);
     if (pinch && activePointers.size < 2) pinch = null;
     if (panState && panState.pointerId === e.pointerId) endPan();
@@ -1721,10 +1797,20 @@
     if (connectorDraft) endConnector(e);
     try { canvas.releasePointerCapture(e.pointerId); } catch(err){}
     requestRenderNow();
-    saveLocalStrokes(); // added for local memory
-    for (const id of selectedIds){
+    saveLocalStrokes();
+    // Only re-write imported media to IndexedDB if it was actually moved/resized.
+    if (movedMedia) for (const id of selectedIds){
       const m = media.find(mm => mm.id === id);
       if (m) persistMediaItem(m);
+    }
+    // Double-tap on touch screens to edit a text node (dblclick is unreliable on touch).
+    if (e.type === 'pointerup' && e.pointerType === 'touch' && state.tool === 'select'){
+      const now = performance.now();
+      if (lastTap && now - lastTap.t < 320 && Math.hypot(e.clientX - lastTap.x, e.clientY - lastTap.y) < 28){
+        const hit = hitTestItem(screenToWorld(e.clientX, e.clientY));
+        if (hit && hit.type === 'node') openNodeEditor(hit);
+        lastTap = null;
+      } else lastTap = { t: now, x: e.clientX, y: e.clientY };
     }
   }
   canvas.addEventListener('pointerup', onPointerEnd);
@@ -1755,8 +1841,6 @@
     btn.addEventListener('click', (e) => {
       const panel = e.target.closest('.panel');
       panel.classList.toggle('collapsed');
-      
-      // Swap the arrow icon up/down
       const isCollapsed = panel.classList.contains('collapsed');
       btn.innerHTML = isCollapsed 
         ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 10 12 18 20 10"></polyline></svg>'
@@ -1805,7 +1889,8 @@
   window.addEventListener('keyup', e => { if (e.code === 'Space'){ spaceDown = false; updateCursorForTool(); } });
 
   // ---- toolbar wiring ------------------------------------------------------
-  document.querySelectorAll('.tool-btn').forEach(btn => btn.addEventListener('click', () => setTool(btn.dataset.tool)));
+  // Only buttons that actually carry a data-tool (Shapes / Import don't).
+  document.querySelectorAll('.tool-btn[data-tool]').forEach(btn => btn.addEventListener('click', () => setTool(btn.dataset.tool)));
 
   document.querySelectorAll('.swatch').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -1832,18 +1917,7 @@
   document.getElementById('undoBtn').addEventListener('click', undo);
   document.getElementById('redoBtn').addEventListener('click', redo);
 
-  // clear button script
-  document.getElementById('clearCanvasBtn').addEventListener('click', () => {
-    if (confirm('Are you sure you want to clear the entire canvas?')) {
-      strokes = []; connectors = [];
-      for (const m of media) idbDeleteMedia(m.id);
-      media = []; mediaImageCache.clear();
-      localStorage.removeItem('infinite-canvas-save');
-      localStorage.removeItem('infinite-canvas-connectors');
-      requestRenderNow();
-      showToast('Canvas cleared');
-    }
-  });
+  document.getElementById('clearCanvasBtn').addEventListener('click', () => { if(confirm('Clear the current page?')){pushHistory();strokes=[];connectors=[];media=[];mediaImageCache.clear();syncArraysToPage();persistDocument();refreshPageUI();requestRenderNow();showToast('Page cleared');} });
 
   // ---- PDF & image import (drag-and-drop + Import button) -------------------
   if (window.pdfjsLib){
@@ -1879,22 +1953,15 @@
     addMediaItem('image', dataURL, at.x - w/2, at.y - h/2, w, h);
   }
   async function importPdfFile(file, at){
-    if (!window.pdfjsLib){ showToast('PDF support unavailable offline'); return; }
-    const buf = await file.arrayBuffer();
-    const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
-    const renderScale = 2; // rasterize at 2x for crisp zoomed-in annotation
-    let cy = at.y;
-    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++){
-      const page = await pdf.getPage(pageNum);
-      const viewport = page.getViewport({ scale: renderScale });
-      const off = document.createElement('canvas');
-      off.width = viewport.width; off.height = viewport.height;
-      await page.render({ canvasContext: off.getContext('2d'), viewport }).promise;
-      const dataURL = off.toDataURL('image/png');
-      const worldW = 480, worldH = worldW * (viewport.height / viewport.width);
-      addMediaItem('pdf', dataURL, at.x, cy, worldW, worldH);
-      cy += worldH + 36;
+    if(!window.pdfjsLib){showToast('PDF support unavailable offline');return;}
+    const buf=await file.arrayBuffer(), pdf=await pdfjsLib.getDocument({data:buf}).promise, renderScale=1.7;
+    const created=[];
+    for(let pageNum=1;pageNum<=pdf.numPages;pageNum++){
+      const pg=await pdf.getPage(pageNum), vp=pg.getViewport({scale:renderScale}), off=document.createElement('canvas');off.width=vp.width;off.height=vp.height;await pg.render({canvasContext:off.getContext('2d'),viewport:vp}).promise;
+      const dataURL=off.toDataURL('image/png'), margin=36, maxW=PAGE_WIDTH-margin*2, maxH=PAGE_HEIGHT-margin*2, scale=Math.min(maxW/vp.width,maxH/vp.height), w=vp.width*scale,h=vp.height*scale;
+      const pageObj={id:nextPageId++,name:`${file.name.replace(/\.pdf$/i,'')} — ${pageNum}`,template:'blank',strokes:[],media:[{id:nextId++,kind:'pdf',dataURL,x:(PAGE_WIDTH-w)/2,y:(PAGE_HEIGHT-h)/2,w,h}],connectors:[]}; pages.splice(currentPageIndex+1+created.length,0,pageObj); created.push(pageObj);
     }
+    currentPageIndex=pages.indexOf(created[0]); activatePage(currentPageIndex); persistDocument(); refreshPageUI(); showToast(`${created.length} PDF page${created.length===1?'':'s'} imported`);
   }
   async function handleImportFiles(fileList, screenPoint){
     const world = screenPoint ? screenToWorld(screenPoint.x, screenPoint.y) : screenToWorld(window.innerWidth/2, window.innerHeight/2);
@@ -1944,244 +2011,84 @@
     }
   });
 
-  // save/load logic
-  // Whole-scene export now includes shapes (they live inside `strokes`),
-  // media (images/PDF pages, dataURLs inlined so the file is fully
-  // self-contained/portable) and connectors. Old save files that are just a
-  // bare strokes array (from before this update) still load fine.
-  function sceneToJSON(){
-    return JSON.stringify({ version:2, strokes, media, connectors });
-  }
+  // ---- save / load ------------------------------------------------------
+  function sceneToJSON(){ syncArraysToPage(); return JSON.stringify({version:3,pageSize:{width:PAGE_WIDTH,height:PAGE_HEIGHT},pages,currentPageIndex}); }
   function applyLoadedScene(parsed){
-    if (Array.isArray(parsed)){ // legacy: bare strokes array
-      strokes = parsed; media = []; connectors = [];
-    } else {
-      strokes = parsed.strokes || [];
-      media = parsed.media || [];
-      connectors = parsed.connectors || [];
-    }
-    mediaImageCache.clear();
-    for (const m of media){ loadMediaImage(m); persistMediaItem(m); if (m.id >= nextId) nextId = m.id+1; }
-    for (const s of strokes) if (s.id >= nextId) nextId = s.id+1;
-    saveLocalStrokes();
+    if(parsed && Array.isArray(parsed.pages)){
+      pages=parsed.pages.map((p,i)=>({id:p.id||i+1,name:p.name||`Page ${i+1}`,template:p.template||'grid',strokes:p.strokes||[],media:p.media||[],connectors:p.connectors||[]})); currentPageIndex=clamp(Number(parsed.currentPageIndex)||0,0,pages.length-1);
+    } else if(parsed && Array.isArray(parsed.strokes)){
+      pages=[{id:1,name:'Page 1',template:parsed.template||'grid',strokes:parsed.strokes||[],media:parsed.media||[],connectors:parsed.connectors||[]}]; currentPageIndex=0;
+    } else if(Array.isArray(parsed)){
+      pages=[{id:1,name:'Page 1',template:'grid',strokes:parsed,media:[],connectors:[]}]; currentPageIndex=0;
+    } else throw new Error('Invalid Vector Plane file');
+    nextPageId=Math.max(1,...pages.map(p=>Number(p.id)||0))+1; activatePage(currentPageIndex); persistDocument(); showToast('File loaded');
   }
-
-  async function saveToDisk(){
-    if (!strokes.length && !media.length){ showToast('Nothing to save yet'); return; }
-    const data = sceneToJSON();
-    // File System Access API: lets the user pick a real folder/file on disk,
-    // with silent re-save to the same handle on subsequent saves. Falls back
-    // to the classic anchor-download flow on browsers that lack it (Firefox,
-    // Safari) so nothing regresses there.
-    if (window.showSaveFilePicker){
-      try {
-        const handle = lastSaveHandle || await window.showSaveFilePicker({
-          suggestedName: 'my-drawing.json',
-          types: [{ description:'Canvas file', accept: {'application/json':['.json']} }]
-        });
-        lastSaveHandle = handle;
-        const writable = await handle.createWritable();
-        await writable.write(data);
-        await writable.close();
-        showToast('Saved to disk');
-        return;
-      } catch (err){
-        if (err && err.name === 'AbortError') return; // user cancelled the picker
-        // fall through to download fallback on any other failure
-      }
-    }
-    const blob = new Blob([data], {type: 'application/json'});
-    const url = URL.createObjectURL(blob);
-    triggerDownload(url, 'my-drawing.json');
-    showToast('File saved');
-  }
-  let lastSaveHandle = null;
-  document.getElementById('saveFileBtn').addEventListener('click', saveToDisk);
-
-  async function openFromDisk(){
-    if (window.showOpenFilePicker){
-      try {
-        const [handle] = await window.showOpenFilePicker({
-          types: [{ description:'Canvas file', accept: {'application/json':['.json']} }]
-        });
-        lastSaveHandle = handle;
-        const file = await handle.getFile();
-        applyLoadedScene(JSON.parse(await file.text()));
-        resetView();
-        showToast('File loaded');
-        return;
-      } catch (err){
-        if (err && err.name === 'AbortError') return;
-        // fall through to hidden <input type=file> fallback
-      }
-    }
-    document.getElementById('fileInput').click();
-  }
-  document.getElementById('loadFileBtn').addEventListener('click', openFromDisk);
-
-  document.getElementById('fileInput').addEventListener('change', e => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      try {
-        applyLoadedScene(JSON.parse(ev.target.result));
-        resetView();
-        showToast('File loaded');
-      } catch (err) {
-        showToast('Error loading file');
-      }
-    };
-    reader.readAsText(file);
-    e.target.value = ''; // Reset input
-  });
-  //end
+  let lastSaveHandle=null;
+  async function saveToDisk(){ if(documentIsEmpty()){showToast('Nothing to save yet');return;} const data=sceneToJSON(); if(window.showSaveFilePicker){try{const handle=lastSaveHandle||await window.showSaveFilePicker({suggestedName:'vector-plane.json',types:[{description:'Vector Plane document',accept:{'application/json':['.json']}}]});lastSaveHandle=handle;const writable=await handle.createWritable();await writable.write(data);await writable.close();showToast('Document saved');return;}catch(err){if(err&&err.name==='AbortError')return;}} const url=URL.createObjectURL(new Blob([data],{type:'application/json'}));triggerDownload(url,'vector-plane.json');setTimeout(()=>URL.revokeObjectURL(url),1500);showToast('Document saved'); }
+  document.getElementById('saveFileBtn').addEventListener('click',saveToDisk);
+  async function openFromDisk(){ if(window.showOpenFilePicker){try{const [handle]=await window.showOpenFilePicker({types:[{description:'Vector Plane document',accept:{'application/json':['.json']}}]});lastSaveHandle=handle;const file=await handle.getFile();applyLoadedScene(JSON.parse(await file.text()));return;}catch(err){if(err&&err.name==='AbortError')return;}}document.getElementById('fileInput').click(); }
+  document.getElementById('loadFileBtn').addEventListener('click',openFromDisk);
+  document.getElementById('fileInput').addEventListener('change',e=>{const file=e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=ev=>{try{applyLoadedScene(JSON.parse(ev.target.result));}catch(err){showToast('Error loading file');}};reader.readAsText(file);e.target.value='';});
 
   document.getElementById('helpBtn').addEventListener('click', e => { e.stopPropagation(); helpPop.classList.toggle('show'); });
 
   // ---- paper template popover ------------------------------------------
-  const templatePop = document.getElementById('templatePop');
-  function refreshTemplateActiveRow(){
-    templatePop.querySelectorAll('.tpl-row').forEach(row => row.classList.toggle('active', row.dataset.template === state.template));
-  }
-  document.getElementById('templateBtn').addEventListener('click', e => {
-    e.stopPropagation(); templatePop.classList.toggle('show'); refreshTemplateActiveRow();
-  });
-  templatePop.querySelectorAll('.tpl-row').forEach(row => {
-    row.addEventListener('click', () => {
-      state.template = row.dataset.template;
-      localStorage.setItem('canvas-template', state.template);
-      refreshTemplateActiveRow();
-      templatePop.classList.remove('show');
-      requestRenderNow();
-    });
-  });
+  const templatePop=document.getElementById('templatePop');
+  function refreshTemplateActiveRow(){ templatePop.querySelectorAll('.tpl-row').forEach(row=>row.classList.toggle('active',row.dataset.template===state.template)); }
+  document.getElementById('templateBtn').addEventListener('click',e=>{e.stopPropagation();templatePop.classList.toggle('show');refreshTemplateActiveRow();});
+  templatePop.querySelectorAll('.tpl-row').forEach(row=>row.addEventListener('click',()=>{pushHistory();state.template=row.dataset.template;currentPage().template=state.template;templatePop.classList.remove('show');persistDocument();requestRenderNow();refreshPageUI();}));
 
-  // ---- shapes flyout ------------------------------------------------------
-  const shapeFlyout = document.getElementById('shapeFlyout');
-  document.getElementById('shapeFlyoutToggle').addEventListener('click', e => {
-    e.stopPropagation(); shapeFlyout.classList.toggle('open');
-  });
-  shapeFlyout.querySelectorAll('.flyout-menu .tool-btn').forEach(btn => {
-    btn.addEventListener('click', () => shapeFlyout.classList.remove('open'));
-  });
-
-  window.addEventListener('click', e => {
-    if (!helpPop.contains(e.target) && e.target.id !== 'helpBtn') helpPop.classList.remove('show');
-    if (!templatePop.contains(e.target) && e.target.id !== 'templateBtn') templatePop.classList.remove('show');
-    if (!shapeFlyout.contains(e.target)) shapeFlyout.classList.remove('open');
-  });
-
-  // ---- toast -----------------------------------------------------------
-  let toastTimer = null;
-  function showToast(msg){
-    toastEl.textContent = msg;
-    toastEl.classList.add('show');
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2200);
-  }
+  // ---- page controls ----------------------------------------------------
+  const pageMenu=document.getElementById('pageMenu');
+  document.getElementById('addPageBtn').addEventListener('click',()=>addPage('grid'));
+  document.getElementById('prevPageBtn').addEventListener('click',()=>{if(currentPageIndex>0)activatePage(currentPageIndex-1);});
+  document.getElementById('nextPageBtn').addEventListener('click',()=>{if(currentPageIndex<pages.length-1)activatePage(currentPageIndex+1);});
+  document.getElementById('pageMoreBtn').addEventListener('click',e=>{e.stopPropagation();pageMenu.classList.toggle('show'); const r=e.currentTarget.getBoundingClientRect(); pageMenu.style.left=Math.min(window.innerWidth-195,Math.max(8,r.right-185))+'px';pageMenu.style.bottom=(window.innerHeight-r.top+8)+'px';});
+  document.getElementById('duplicatePageBtn').addEventListener('click',()=>{pageMenu.classList.remove('show');duplicatePage();});
+  document.getElementById('renamePageBtn').addEventListener('click',()=>{pageMenu.classList.remove('show');renamePage();});
+  document.getElementById('deletePageBtn').addEventListener('click',()=>{pageMenu.classList.remove('show');deletePage();});
+  document.getElementById('movePageLeftBtn').addEventListener('click',()=>{pageMenu.classList.remove('show');movePage(currentPageIndex,currentPageIndex-1);});
+  document.getElementById('movePageRightBtn').addEventListener('click',()=>{pageMenu.classList.remove('show');movePage(currentPageIndex,currentPageIndex+1);});
+  document.getElementById('fitPageBtn').addEventListener('click',()=>{pageMenu.classList.remove('show');fitPageToScreen();});
 
   // ---- export ----------------------------------------------------------
-  function triggerDownload(url, filename){
-    const a = document.createElement('a');
-    a.href = url; a.download = filename;
-    document.body.appendChild(a); a.click(); a.remove();
+  function triggerDownload(url,filename){const a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();}
+  function renderPageCanvas(page,scale=2){
+    const off=document.createElement('canvas');off.width=Math.round(PAGE_WIDTH*scale);off.height=Math.round(PAGE_HEIGHT*scale);const c=off.getContext('2d');
+    c.fillStyle=page.template==='blank'?'#fff':'#fff';c.fillRect(0,0,off.width,off.height);c.save();c.scale(scale,scale);
+    if(page.template!=='blank'){c.save();c.globalAlpha=.45;c.strokeStyle='rgba(20,21,26,.1)';c.lineWidth=1/scale;const step=page.template==='dots'?24:40;if(page.template==='dots'){for(let x=20;x<PAGE_WIDTH;x+=step)for(let y=20;y<PAGE_HEIGHT;y+=step){c.beginPath();c.arc(x,y,1.1,0,Math.PI*2);c.fillStyle='rgba(20,21,26,.18)';c.fill();}}else{for(let x=0;x<=PAGE_WIDTH;x+=step)c.fillRect(x,0,1,PAGE_HEIGHT);for(let y=0;y<=PAGE_HEIGHT;y+=step)c.fillRect(0,y,PAGE_WIDTH,1);}c.restore();}
+    for(const m of(page.media||[])){const img=mediaImageCache.get(m.id);if(img&&img.complete&&img.naturalWidth)c.drawImage(img,m.x,m.y,m.w,m.h);} for(const s of(page.strokes||[])){if(s.type&&SHAPE_TYPES.has(s.type))drawShapeItem(c,s);else drawStroke(c,s);} c.restore(); return off;
   }
-
-  document.getElementById('exportPngBtn').addEventListener('click', () => {
-    if (!strokes.length && !media.length){ showToast('Nothing to export yet'); return; }
-    const bbox = computeSceneBBox();
-    const pad = 40, scale = 2;
-    const w = (bbox.maxX-bbox.minX) + pad*2;
-    const h = (bbox.maxY-bbox.minY) + pad*2;
-    const off = document.createElement('canvas');
-    off.width = Math.max(1, Math.round(w*scale));
-    off.height = Math.max(1, Math.round(h*scale));
-    const octx = off.getContext('2d');
-    octx.fillStyle = '#FFFFFF';
-    octx.fillRect(0, 0, off.width, off.height);
-    octx.setTransform(scale, 0, 0, scale, (pad-bbox.minX)*scale, (pad-bbox.minY)*scale);
-    for (const m of media) drawMediaItem(octx, m);
-    for (const s of strokes) drawStroke(octx, s);
-    triggerDownload(off.toDataURL('image/png'), 'vector-sketch.png');
-    showToast('PNG exported');
-  });
-
-  function strokeToSVGPaths(stroke, offX, offY){
-    const pts = stroke.points;
-    if (!pts.length) return '';
-    if (pts.length === 1){
-      const r = pressureToWidth(stroke, pts[0].p)/2;
-      return '<circle cx="'+(pts[0].x+offX).toFixed(2)+'" cy="'+(pts[0].y+offY).toFixed(2)+'" r="'+r.toFixed(2)+'" fill="'+stroke.color+'"/>\n';
+  async function ensurePageImages(page){
+    const jobs=[];
+    for(const m of(page.media||[])){
+      const cached=mediaImageCache.get(m.id);
+      if(cached&&cached.complete&&cached.naturalWidth) continue;
+      jobs.push(new Promise(resolve=>{const img=new Image();img.onload=()=>{mediaImageCache.set(m.id,img);resolve();};img.onerror=()=>resolve();img.src=m.dataURL;}));
     }
-    let out = '';
-    for (let i=0; i<pts.length-1; i++){
-      const p0 = pts[i], p1 = pts[i+1];
-      const w = (pressureToWidth(stroke,p0.p) + pressureToWidth(stroke,p1.p)) / 2;
-      out += '<path d="M'+(p0.x+offX).toFixed(2)+' '+(p0.y+offY).toFixed(2)+' L'+(p1.x+offX).toFixed(2)+' '+(p1.y+offY).toFixed(2)+
-             '" stroke="'+stroke.color+'" stroke-width="'+w.toFixed(2)+'" stroke-linecap="round" fill="none"/>\n';
-    }
-    return out;
+    await Promise.all(jobs);
   }
-  function shapeToSVG(shape, offX, offY){
-    const b = getShapeBBox(shape);
-    const sw = Math.max(1, shape.baseWidth||2);
-    const x0=b.minX+offX, y0=b.minY+offY, w=b.maxX-b.minX, h=b.maxY-b.minY;
-    switch(shape.type){
-      case 'rect': case 'node':
-        return '<rect x="'+x0.toFixed(2)+'" y="'+y0.toFixed(2)+'" width="'+w.toFixed(2)+'" height="'+h.toFixed(2)+
-          '" rx="'+(shape.type==='node'?14:0)+'" fill="none" stroke="'+shape.color+'" stroke-width="'+sw+'"/>\n';
-      case 'ellipse':
-        return '<ellipse cx="'+(x0+w/2).toFixed(2)+'" cy="'+(y0+h/2).toFixed(2)+'" rx="'+(w/2).toFixed(2)+'" ry="'+(h/2).toFixed(2)+
-          '" fill="none" stroke="'+shape.color+'" stroke-width="'+sw+'"/>\n';
-      case 'triangle': {
-        const v = triangleVertices(shape).map(p => (p.x+offX).toFixed(2)+','+(p.y+offY).toFixed(2)).join(' ');
-        return '<polygon points="'+v+'" fill="none" stroke="'+shape.color+'" stroke-width="'+sw+'"/>\n';
-      }
-      case 'arrow': {
-        const [p0,p1] = shape.points;
-        return '<line x1="'+(p0.x+offX).toFixed(2)+'" y1="'+(p0.y+offY).toFixed(2)+'" x2="'+(p1.x+offX).toFixed(2)+'" y2="'+(p1.y+offY).toFixed(2)+
-          '" stroke="'+shape.color+'" stroke-width="'+sw+'" marker-end="url(#arrowhead)"/>\n';
-      }
-    }
-    return '';
-  }
-  function mediaToSVG(item, offX, offY){
-    return '<image x="'+(item.x+offX).toFixed(2)+'" y="'+(item.y+offY).toFixed(2)+'" width="'+item.w.toFixed(2)+'" height="'+item.h.toFixed(2)+
-      '" href="'+item.dataURL+'" preserveAspectRatio="none"/>\n';
-  }
-  document.getElementById('exportSvgBtn').addEventListener('click', () => {
-    if (!strokes.length && !media.length){ showToast('Nothing to export yet'); return; }
-    const bbox = computeSceneBBox();
-    const pad = 40;
-    const w = (bbox.maxX-bbox.minX) + pad*2;
-    const h = (bbox.maxY-bbox.minY) + pad*2;
-    const offX = pad - bbox.minX, offY = pad - bbox.minY;
-    let body = '';
-    for (const m of media) body += mediaToSVG(m, offX, offY);
-    for (const s of strokes) body += (s.type && SHAPE_TYPES.has(s.type)) ? shapeToSVG(s, offX, offY) : strokeToSVGPaths(s, offX, offY);
-    const defs = '<defs><marker id="arrowhead" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0 0L8 4L0 8z"/></marker></defs>\n';
-    const svg = '<?xml version="1.0" encoding="UTF-8"?>\n' +
-      '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="'+w.toFixed(0)+'" height="'+h.toFixed(0)+'" viewBox="0 0 '+w.toFixed(0)+' '+h.toFixed(0)+'">\n' +
-      '<rect width="100%" height="100%" fill="#ffffff"/>\n' + defs + body + '</svg>\n';
-    const blob = new Blob([svg], { type:'image/svg+xml' });
-    const url = URL.createObjectURL(blob);
-    triggerDownload(url, 'vector-sketch.svg');
-    setTimeout(() => URL.revokeObjectURL(url), 1500);
-    showToast('SVG exported');
-  });
+  function selectedPagesForExport(kind){syncArraysToPage();if(kind==='current')return [{p:currentPage(),i:currentPageIndex}];if(kind==='written')return pages.map((p,i)=>({p,i})).filter(x=>pageIsWritten(x.p));if(kind==='all')return pages.map((p,i)=>({p,i}));const raw=prompt('Enter page range, e.g. 2-5 or 1,3,7',`${currentPageIndex+1}`);if(!raw)return [];const set=new Set();for(const part of raw.split(',')){const m=part.trim().match(/^(\d+)(?:-(\d+))?$/);if(!m)continue;const a=Number(m[1]),b=Number(m[2]||m[1]);for(let n=Math.min(a,b);n<=Math.max(a,b);n++)if(n>=1&&n<=pages.length)set.add(n-1);}return [...set].sort((a,b)=>a-b).map(i=>({p:pages[i],i}));}
+  async function exportPngPages(kind){const items=selectedPagesForExport(kind);if(!items.length){showToast('No pages selected');return;}if(items.length===1){await ensurePageImages(items[0].p);const off=renderPageCanvas(items[0].p,2);triggerDownload(off.toDataURL('image/png'),`vector-plane-page-${items[0].i+1}.png`);showToast('PNG exported');return;}if(!window.JSZip){showToast('ZIP export library unavailable');return;}for(const x of items)await ensurePageImages(x.p);const zip=new JSZip();for(const x of items){const off=renderPageCanvas(x.p,2);const b64=off.toDataURL('image/png').split(',')[1];zip.file(`page-${String(x.i+1).padStart(2,'0')}.png`,b64,{base64:true});}const blob=await zip.generateAsync({type:'blob'});triggerDownload(URL.createObjectURL(blob),`vector-plane-pages-${items[0].i+1}-${items[items.length-1].i+1}.zip`);showToast(`${items.length} pages exported`);}
+  async function exportPdf(kind){const items=selectedPagesForExport(kind==='current'?'current':'range');if(!items.length)return;for(const x of items)await ensurePageImages(x.p);if(!window.jspdf){showToast('PDF export library unavailable');return;}const {jsPDF}=window.jspdf;const pdf=new jsPDF({orientation:'portrait',unit:'pt',format:[PAGE_WIDTH,PAGE_HEIGHT],compress:true});items.forEach((x,n)=>{if(n)pdf.addPage([PAGE_WIDTH,PAGE_HEIGHT],'portrait');const off=renderPageCanvas(x.p,1.5);pdf.addImage(off.toDataURL('image/jpeg',.9),'JPEG',0,0,PAGE_WIDTH,PAGE_HEIGHT);});pdf.save(`vector-plane-pages-${items.length}.pdf`);showToast('PDF exported');}
+  const exportMenu=document.getElementById('exportMenu');
+  document.getElementById('exportPngBtn').addEventListener('click',e=>{e.stopPropagation();exportMenu.classList.toggle('show');});
+  document.getElementById('exportSvgBtn').addEventListener('click',()=>{syncArraysToPage();if(!strokes.length&&!media.length){showToast('Nothing to export yet');return;}const bbox={minX:0,minY:0,maxX:PAGE_WIDTH,maxY:PAGE_HEIGHT};let body='';for(const m of media)body+=mediaToSVG(m,0,0);for(const s of strokes)body+=(s.type&&SHAPE_TYPES.has(s.type))?shapeToSVG(s,0,0):strokeToSVGPaths(s,0,0);const svg='<?xml version="1.0" encoding="UTF-8"?><svg xmlns="http://www.w3.org/2000/svg" width="'+PAGE_WIDTH+'" height="'+PAGE_HEIGHT+'" viewBox="0 0 '+PAGE_WIDTH+' '+PAGE_HEIGHT+'"><rect width="100%" height="100%" fill="#fff"/>'+body+'</svg>';const url=URL.createObjectURL(new Blob([svg],{type:'image/svg+xml'}));triggerDownload(url,`vector-plane-page-${currentPageIndex+1}.svg`);setTimeout(()=>URL.revokeObjectURL(url),1500);showToast('SVG exported');});
+  exportMenu.querySelectorAll('button[data-export]').forEach(b=>b.addEventListener('click',async()=>{exportMenu.classList.remove('show');const k=b.dataset.export; if(k==='current')await exportPngPages('current');else if(k==='range')await exportPngPages('range');else if(k==='written')await exportPngPages('written');else if(k==='all')await exportPngPages('all');else if(k==='pdf-current')await exportPdf('current');else if(k==='pdf-range')await exportPdf('range');}));
 
+  document.addEventListener('click',e=>{if(!pageMenu.contains(e.target)&&e.target.id!=='pageMoreBtn')pageMenu.classList.remove('show');if(!exportMenu.contains(e.target)&&e.target.id!=='exportPngBtn')exportMenu.classList.remove('show');});
+
+  window.addEventListener('keydown',e=>{if(e.target&&['INPUT','TEXTAREA'].includes(e.target.tagName))return;if(e.key==='PageDown'){e.preventDefault();if(currentPageIndex<pages.length-1)activatePage(currentPageIndex+1);}else if(e.key==='PageUp'){e.preventDefault();if(currentPageIndex>0)activatePage(currentPageIndex-1);}else if((e.ctrlKey||e.metaKey)&&e.shiftKey&&e.key.toLowerCase()==='n'){e.preventDefault();addPage('grid');}});
 
   // ---- init ---------------------------------------------------------------
   function init(){
     applyTheme();
     loadLocalStrokes();
-    for (const s of strokes) if (s.id >= nextId) nextId = s.id + 1;
-    for (const c of connectors) if (c.id >= nextId) nextId = c.id + 1;
-    loadLocalMedia(); // async — pulls saved PDFs/images out of IndexedDB and bumps nextId past their ids too
+    for(const p of pages){for(const s of(p.strokes||[]))if(s.id>=nextId)nextId=s.id+1;for(const m of(p.media||[]))if(m.id>=nextId)nextId=m.id+1;for(const c of(p.connectors||[]))if(c.id>=nextId)nextId=c.id+1;}
+    activatePage(currentPageIndex,{keepView:true});
+    loadLocalMedia();
     resize();
-    camera.panX = window.innerWidth / 2;
-    camera.panY = window.innerHeight / 2;
+    fitPageToScreen();
     setTool('pen');
     const activeSwatch = document.querySelector('.swatch[data-color="'+state.color+'"]');
     if (activeSwatch) activeSwatch.classList.add('active');
@@ -2192,5 +2099,7 @@
 
 })();
 </script>
+  <script data-goatcounter="https://zx0409.goatcounter.com/count"
+        async src="//gc.zgo.at/count.js"></script>
 </body>
 </html>
