@@ -1,0 +1,28 @@
+{
+  "name": "Vector Plane",
+  "short_name": "Vector Plane",
+  "description": "An infinite whiteboard and notebook. Sketch, diagram, annotate PDFs and zoom forever, offline.",
+  "id": "./",
+  "start_url": "./?source=pwa",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone"],
+  "orientation": "any",
+  "background_color": "#121316",
+  "theme_color": "#121316",
+  "categories": ["productivity", "education", "graphics"],
+  "launch_handler": { "client_mode": "focus-existing" },
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "icons/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ],
+  "shortcuts": [
+    { "name": "New paper page", "short_name": "New page", "url": "./?action=new-page", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "New canvas", "short_name": "New canvas", "url": "./?action=new-canvas", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] }
+  ],
+  "file_handlers": [
+    { "action": "./", "accept": { "application/json": [".json"], "application/pdf": [".pdf"], "image/*": [".png", ".jpg", ".jpeg", ".webp", ".gif"] } }
+  ]
+}
