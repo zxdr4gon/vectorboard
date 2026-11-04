@@ -4,160 +4,283 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Vector Plane — Feature Guide</title>
-<meta name="description" content="An infinite whiteboard that runs in your browser. See everything it can do.">
-<link rel="icon" href="https://img.icons8.com/3d-sugary/100/class-1.png">
+<meta name="description" content="An infinite whiteboard and notebook that runs in your browser and installs on your phone. See everything it can do.">
+<meta name="theme-color" content="#F6F6F4" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#121316" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-  :root{
-    --bg:#E9EAEE; --card:#fff; --line:rgba(20,21,26,.1); --ink:#14151A; --mute:#5b5e68;
-    --accent:#0f9d8a; --accent-soft:rgba(15,157,138,.12); --on-accent:#fff;
-    --ui:'Space Grotesk',system-ui,-apple-system,sans-serif;
-    --mono:'IBM Plex Mono',ui-monospace,monospace;
-    box-sizing:border-box;
-    padding-top:env(safe-area-inset-top,0px);
-    padding-bottom:env(safe-area-inset-bottom,0px);
+  :root {
+    --bg: #F6F6F4; --card: #FFFFFF; --line: rgba(20,21,26,.10); --ink: #16171B; --mute: #50545E; --faint: #6B6F7A;
+    --accent: #22C7AE; --accent-ink: #0A7A6B; --accent-soft: rgba(34,199,174,.14); --on-accent: #052520;
+    --ui: 'Space Grotesk', system-ui, -apple-system, sans-serif; --mono: 'IBM Plex Mono', ui-monospace, monospace;
+    color-scheme: light;
   }
-  @media (prefers-color-scheme:dark){
-    :root:not([data-theme="light"]){
-      --bg:#121316; --card:#1E2024; --line:rgba(255,255,255,.08); --ink:#E9EAEE; --mute:#8A8D96;
-      --accent:#35E0C6; --accent-soft:rgba(53,224,198,.14); --on-accent:#0A1512;
-    }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #121316; --card: #1C1D21; --line: rgba(255,255,255,.08); --ink: #ECEDEF; --mute: #B9BCC4; --faint: #9195A0;
+      --accent: #35E0C6; --accent-ink: #35E0C6; --accent-soft: rgba(53,224,198,.13); --on-accent: #062520; color-scheme: dark; }
   }
-  :root[data-theme="dark"]{
-    --bg:#121316; --card:#1E2024; --line:rgba(255,255,255,.08); --ink:#E9EAEE; --mute:#8A8D96;
-    --accent:#35E0C6; --accent-soft:rgba(53,224,198,.14); --on-accent:#0A1512;
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.6 var(--ui); padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 20px; }
+  a { color: inherit; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 6px; }
+  .ic { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+
+  nav.top { display: flex; align-items: center; justify-content: space-between; padding: 18px 0; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 600; text-decoration: none; }
+  .brand img { width: 28px; height: 28px; border-radius: 7px; }
+  .top-links { display: flex; gap: 6px; }
+  .top-links a { text-decoration: none; color: var(--mute); font-size: 14px; padding: 8px 10px; border-radius: 8px; }
+  .top-links a:hover { color: var(--ink); background: var(--accent-soft); }
+
+  .hero { display: grid; grid-template-columns: 1.05fr 1fr; gap: 48px; align-items: center; padding: 40px 0 56px; }
+  .eyebrow { font: 500 12px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--accent-ink); }
+  h1 { font-size: clamp(38px, 6vw, 64px); line-height: 1.02; letter-spacing: -.03em; margin: 14px 0 18px; font-weight: 700; }
+  .lead { font-size: clamp(17px, 2.2vw, 19px); color: var(--mute); margin: 0 0 28px; max-width: 34em; }
+  .cta { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .btn { display: inline-flex; align-items: center; gap: 8px; height: 48px; padding: 0 22px; border-radius: 12px; font-weight: 600; text-decoration: none; font-size: 16px; transition: background-color .15s, box-shadow .15s; }
+  .btn-primary { background: var(--accent); color: var(--on-accent); }
+  .btn-primary:hover { filter: brightness(1.05); }
+  .btn-ghost { box-shadow: inset 0 0 0 1px var(--line); color: var(--ink); }
+  .btn-ghost:hover { background: var(--card); }
+  .facts { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 26px 0 0; padding: 0; list-style: none; color: var(--faint); font-size: 14px; }
+  .facts li { display: flex; align-items: center; gap: 6px; }
+  .facts .ic { width: 16px; height: 16px; color: var(--accent-ink); }
+
+  /* Static mock of the app, drawn with SVG so it stays crisp and light. */
+  .mock { background: var(--card); border: 1px solid var(--line); border-radius: 20px; aspect-ratio: 4 / 3.1; position: relative; overflow: hidden; box-shadow: 0 2px 6px rgba(16,18,24,.06), 0 24px 60px rgba(16,18,24,.10); }
+  .mock svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+  section { padding: 48px 0; border-top: 1px solid var(--line); }
+  .sec-head { display: grid; grid-template-columns: 1fr 2fr; gap: 32px; margin-bottom: 28px; }
+  h2 { font-size: clamp(24px, 3.4vw, 32px); line-height: 1.15; letter-spacing: -.02em; margin: 0; }
+  .sec-head p { margin: 0; color: var(--mute); max-width: 40em; }
+  .grid { display: grid; gap: 1px; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); background: var(--line); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; }
+  .feat { background: var(--card); padding: 22px 22px 24px; }
+  .feat h3 { display: flex; align-items: center; gap: 10px; margin: 0 0 8px; font-size: 16px; }
+  .feat h3 .ic { color: var(--accent-ink); }
+  .feat p { margin: 0; color: var(--mute); font-size: 14.5px; line-height: 1.55; }
+  kbd { font: 500 12px var(--mono); background: var(--accent-soft); color: var(--accent-ink); padding: 1px 6px; border-radius: 5px; white-space: nowrap; }
+  .new { font: 500 10px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--on-accent); background: var(--accent); padding: 2px 6px; border-radius: 4px; margin-left: auto; }
+
+  ol.steps { list-style: none; counter-reset: s; padding: 0; margin: 0; display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+  ol.steps li { counter-increment: s; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 18px; font-size: 15px; color: var(--mute); }
+  ol.steps li::before { content: counter(s, decimal-leading-zero); display: block; font: 500 12px var(--mono); color: var(--accent-ink); margin-bottom: 10px; }
+  ol.steps b { color: var(--ink); }
+
+  .install { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+  .platform { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 20px; }
+  .platform h3 { margin: 0 0 8px; font-size: 16px; display: flex; gap: 10px; align-items: center; }
+  .platform p { margin: 0; color: var(--mute); font-size: 14.5px; }
+
+  .table { border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: var(--card); }
+  .table-scroll { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; min-width: 460px; font-size: 14.5px; }
+  th, td { text-align: left; padding: 11px 16px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  tr:last-child td { border-bottom: 0; }
+  th { font: 500 11px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--faint); background: var(--bg); }
+  td:first-child { white-space: nowrap; width: 38%; }
+
+  footer { padding: 56px 0 64px; border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 20px; align-items: center; justify-content: space-between; color: var(--faint); font-size: 14px; }
+
+  @media (max-width: 860px) {
+    .hero { grid-template-columns: 1fr; gap: 32px; padding-top: 16px; }
+    .sec-head { grid-template-columns: 1fr; gap: 10px; }
   }
-  *{box-sizing:border-box}
-  html{scroll-padding-top:env(safe-area-inset-top,0px);scroll-behavior:smooth}
-  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--ui);line-height:1.55;-webkit-text-size-adjust:100%}
-  .wrap{max-width:860px;margin:0 auto;padding:0 20px}
-  .hero{padding:56px 0 36px;text-align:center}
-  .tag{display:inline-block;font:500 11px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--accent);background:var(--accent-soft);padding:6px 12px;border-radius:999px}
-  h1{font-size:clamp(34px,8vw,58px);line-height:1.04;margin:18px 0 14px;letter-spacing:-.02em}
-  .lead{font-size:clamp(16px,3.6vw,19px);color:var(--mute);max-width:560px;margin:0 auto 26px}
-  .btn{display:inline-block;background:var(--accent);color:var(--on-accent);font-weight:600;text-decoration:none;padding:14px 28px;border-radius:14px;font-size:16px}
-  .btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line);margin-left:8px}
-  .pills{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:22px}
-  .pills span{font-size:12.5px;color:var(--mute);border:1px solid var(--line);padding:5px 11px;border-radius:999px;background:var(--card)}
-  section{padding:30px 0}
-  h2{font-size:clamp(22px,5vw,30px);margin:0 0 6px;letter-spacing:-.01em}
-  .sub{color:var(--mute);margin:0 0 20px}
-  .grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(250px,1fr))}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px}
-  .card h3{margin:0 0 6px;font-size:16.5px;display:flex;align-items:center;gap:9px}
-  .card h3 i{font-style:normal;display:grid;place-items:center;width:30px;height:30px;border-radius:9px;background:var(--accent-soft);font-size:15px}
-  .card p{margin:0;color:var(--mute);font-size:14.5px}
-  kbd{font:500 12px var(--mono);background:var(--accent-soft);color:var(--accent);padding:2px 7px;border-radius:6px;white-space:nowrap}
-  ol.steps{list-style:none;counter-reset:s;padding:0;margin:0;display:grid;gap:10px}
-  ol.steps li{counter-increment:s;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px 14px 54px;position:relative;font-size:15px}
-  ol.steps li::before{content:counter(s);position:absolute;left:14px;top:12px;width:28px;height:28px;border-radius:50%;background:var(--accent);color:var(--on-accent);display:grid;place-items:center;font-weight:700;font-size:14px}
-  .scroll{overflow-x:auto;border:1px solid var(--line);border-radius:14px;background:var(--card)}
-  table{border-collapse:collapse;width:100%;min-width:420px;font-size:14.5px}
-  th,td{text-align:left;padding:10px 14px;border-bottom:1px solid var(--line)}
-  tr:last-child td{border-bottom:none}
-  th{font:500 11px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--mute)}
-  .note{background:var(--accent-soft);border-radius:14px;padding:16px 18px;font-size:15px}
-  footer{padding:36px 0 48px;text-align:center;color:var(--mute);font-size:13.5px}
-  footer .btn{margin-bottom:18px}
+  @media (max-width: 520px) {
+    .top-links a:not(:last-child) { display: none; }
+    .btn { width: 100%; justify-content: center; }
+  }
 </style>
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <symbol id="g-pen" viewBox="0 0 24 24"><path d="M4 20l1.2-4.6L15.6 5a2.1 2.1 0 013 3L8.2 18.4z"/><path d="M13.5 7l3.5 3.5"/></symbol>
+  <symbol id="g-hl" viewBox="0 0 24 24"><path d="M14.5 4.5l5 5-8 8H6.5v-5z"/><path d="M6.5 17.5L4 20h5"/><path d="M11.5 7.5l5 5"/></symbol>
+  <symbol id="g-snap" viewBox="0 0 24 24"><path d="M4 16c3-8 6 4 9-3"/><path d="M15 6h5v5"/><rect x="14" y="13" width="7" height="7" rx="1"/></symbol>
+  <symbol id="g-eraser" viewBox="0 0 24 24"><path d="M8 20h12"/><path d="M5.6 14.6l8.5-8.5a2 2 0 012.8 0l2.9 2.9a2 2 0 010 2.8L13 18.6a2 2 0 01-1.4.6H9.4a2 2 0 01-1.4-.6l-2.4-2.4a2 2 0 010-2.8z"/></symbol>
+  <symbol id="g-shapes" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7.5" height="7.5" rx="1.5"/><circle cx="17" cy="7.25" r="3.75"/><path d="M7.25 13.5l4 7h-8z"/><path d="M17 13.5l3.5 3.5-3.5 3.5-3.5-3.5z"/></symbol>
+  <symbol id="g-text" viewBox="0 0 24 24"><path d="M5 7V5h14v2"/><path d="M12 5v14"/><path d="M9.5 19h5"/></symbol>
+  <symbol id="g-sticky" viewBox="0 0 24 24"><path d="M5 4h14a1 1 0 011 1v9l-6 6H5a1 1 0 01-1-1V5a1 1 0 011-1z"/><path d="M14 20v-5a1 1 0 011-1h5"/></symbol>
+  <symbol id="g-conn" viewBox="0 0 24 24"><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="6" r="2.5"/><path d="M8 16l8-8"/></symbol>
+  <symbol id="g-pdf" viewBox="0 0 24 24"><path d="M14 3.5H6.5A1.5 1.5 0 005 5v14a1.5 1.5 0 001.5 1.5h11A1.5 1.5 0 0019 19V8.5z"/><path d="M14 3.5v5h5M8.5 13h7M8.5 16.5h5"/></symbol>
+  <symbol id="g-zoom" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.4-4.4M11 8v6M8 11h6"/></symbol>
+  <symbol id="g-paper" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8.5 8h7M8.5 12h7M8.5 16h4"/></symbol>
+  <symbol id="g-pages" viewBox="0 0 24 24"><rect x="7" y="3" width="13" height="16" rx="2"/><path d="M4 7v12a2 2 0 002 2h10"/></symbol>
+  <symbol id="g-select" viewBox="0 0 24 24"><path d="M5 3.5l5.8 16 2.3-6.6 6.6-2.3z"/></symbol>
+  <symbol id="g-laser" viewBox="0 0 24 24"><circle cx="12" cy="12" r="2.5"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></symbol>
+  <symbol id="g-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 019.5 4a8 8 0 1010.5 10.5z"/></symbol>
+  <symbol id="g-undo" viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 010 11H11"/></symbol>
+  <symbol id="g-save" viewBox="0 0 24 24"><path d="M5 4h11l4 4v11a1 1 0 01-1 1H5a1 1 0 01-1-1V5a1 1 0 011-1z"/><path d="M8 4v4.5h7V4"/><path d="M7.5 20v-6.5h9V20"/></symbol>
+  <symbol id="g-dl" viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5"/><path d="M4 16v2.5A1.5 1.5 0 005.5 20h13a1.5 1.5 0 001.5-1.5V16"/></symbol>
+  <symbol id="g-clip" viewBox="0 0 24 24"><rect x="8.5" y="8.5" width="12" height="12" rx="2"/><path d="M15.5 8.5V5A1.5 1.5 0 0014 3.5H5A1.5 1.5 0 003.5 5v9A1.5 1.5 0 005 15.5h3.5"/></symbol>
+  <symbol id="g-offline" viewBox="0 0 24 24"><path d="M5 12.5a10 10 0 0114 0M8.5 16a5 5 0 017 0"/><path d="M12 19.5h.01"/><path d="M3 3l18 18"/></symbol>
+  <symbol id="g-phone" viewBox="0 0 24 24"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M11 18.5h2"/></symbol>
+  <symbol id="g-desktop" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></symbol>
+  <symbol id="g-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+  <symbol id="g-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+  <symbol id="g-palm" viewBox="0 0 24 24"><path d="M8 13V5.5a1.5 1.5 0 013 0V12"/><path d="M11 11.5V4.5a1.5 1.5 0 013 0V12"/><path d="M14 11.5v-5a1.5 1.5 0 013 0V15a6 6 0 01-6 6h-.6a6 6 0 01-4.8-2.4l-2.3-3.3a1.5 1.5 0 012.3-1.9L8 15.2"/></symbol>
+</defs></svg>
+
 <div class="wrap">
+  <nav class="top" aria-label="Site">
+    <a class="brand" href="./"><img src="icons/favicon.svg" alt="" width="28" height="28">Vector Plane</a>
+    <div class="top-links">
+      <a href="#features">Features</a>
+      <a href="#install">Install</a>
+      <a href="#keys">Shortcuts</a>
+      <a href="./?ref=guide-nav" data-track="nav">Open app</a>
+    </div>
+  </nav>
 
   <header class="hero">
-    <span class="tag">Infinite canvas</span>
-    <h1>Vector Plane</h1>
-    <p class="lead">An infinite whiteboard that runs right in your browser. Sketch, diagram, annotate PDFs, and zoom forever without losing sharpness. No install, no account.</p>
-    <a class="btn" href="https://zxdr4gon.github.io/vectorboard/?ref=guide-doc">Open the canvas</a><a class="btn ghost" href="#features">See features</a>
-    <div class="pills"><span>Works on phone</span><span>Works on desktop</span><span>Free</span><span>Auto-saves</span></div>
+    <div>
+      <span class="eyebrow">Infinite canvas · Notebook · PDF markup</span>
+      <h1>Think on a plane with no edges.</h1>
+      <p class="lead">Vector Plane is a whiteboard and notebook that runs in your browser and installs like an app. Sketch, diagram, annotate PDFs and zoom forever without losing sharpness. No account, works offline.</p>
+      <div class="cta">
+        <a class="btn btn-primary" href="./?ref=guide-doc" data-track="hero">Open the canvas<svg class="ic" aria-hidden="true"><use href="#g-arrow"/></svg></a>
+        <a class="btn btn-ghost" href="#install">Install on your phone</a>
+      </div>
+      <ul class="facts">
+        <li><svg class="ic" aria-hidden="true"><use href="#g-check"/></svg>Free</li>
+        <li><svg class="ic" aria-hidden="true"><use href="#g-check"/></svg>Auto-saves</li>
+        <li><svg class="ic" aria-hidden="true"><use href="#g-check"/></svg>Works offline</li>
+        <li><svg class="ic" aria-hidden="true"><use href="#g-check"/></svg>Stylus pressure</li>
+      </ul>
+    </div>
+    <div class="mock" role="img" aria-label="Preview of Vector Plane: a grid canvas with a sticky note, connected shapes and handwriting">
+      <svg viewBox="0 0 400 310" preserveAspectRatio="xMidYMid slice">
+        <defs>
+          <pattern id="gp" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M20 0H0V20" fill="none" stroke="currentColor" stroke-opacity=".07"/></pattern>
+          <pattern id="gP" width="100" height="100" patternUnits="userSpaceOnUse"><path d="M100 0H0V100" fill="none" stroke="currentColor" stroke-opacity=".13"/></pattern>
+        </defs>
+        <g style="color:var(--ink)"><rect width="400" height="310" fill="url(#gp)"/><rect width="400" height="310" fill="url(#gP)"/></g>
+        <rect x="10" y="10" width="148" height="30" rx="9" fill="var(--card)" stroke="var(--line)"/>
+        <rect x="20" y="21" width="9" height="2" rx="1" fill="var(--faint)"/><rect x="20" y="25" width="9" height="2" rx="1" fill="var(--faint)"/><rect x="20" y="29" width="9" height="2" rx="1" fill="var(--faint)"/>
+        <rect x="38" y="21" width="62" height="8" rx="3" fill="var(--ink)" opacity=".8"/>
+        <rect x="108" y="22" width="34" height="6" rx="3" fill="var(--faint)" opacity=".6"/>
+        <rect x="330" y="10" width="60" height="30" rx="9" fill="var(--card)" stroke="var(--line)"/>
+        <rect x="338" y="17" width="44" height="16" rx="6" fill="var(--accent)"/>
+        <rect x="10" y="66" width="30" height="176" rx="9" fill="var(--card)" stroke="var(--line)"/>
+        <g fill="none" stroke="var(--faint)" stroke-width="1.6" stroke-linecap="round">
+          <circle cx="25" cy="82" r="5" fill="#14151A" stroke="none"/>
+          <path d="M20 104l10-10"/><rect x="18" y="118" width="14" height="14" rx="4" fill="var(--accent-soft)" stroke="var(--accent-ink)"/>
+          <path d="M21 145h8M25 145v8"/><rect x="19" y="164" width="12" height="9" rx="2"/><circle cx="25" cy="190" r="5"/><path d="M20 212l10-10M25 222h.01"/>
+        </g>
+        <rect x="70" y="80" width="96" height="40" rx="14" fill="rgba(61,92,255,.08)" stroke="#3D5CFF" stroke-width="2"/>
+        <text x="118" y="105" text-anchor="middle" font-family="Space Grotesk, sans-serif" font-weight="600" font-size="13" fill="#3D5CFF">Big idea</text>
+        <rect x="236" y="70" width="104" height="96" rx="6" fill="rgb(255,223,158)"/>
+        <text font-family="Space Grotesk, sans-serif" font-size="12" font-weight="500" fill="#1B1C20"><tspan x="248" y="92">Ship the</tspan><tspan x="248" y="108">offline mode</tspan><tspan x="248" y="124">by Friday</tspan></text>
+        <path d="M166 100L232 112" stroke="#6B6F7A" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M222 105l10 7-11 4" fill="none" stroke="#6B6F7A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <ellipse cx="130" cy="210" rx="52" ry="30" fill="rgba(53,224,198,.16)" stroke="#0FA390" stroke-width="2.5"/>
+        <path d="M118 160L124 178" stroke="#6B6F7A" stroke-width="2" stroke-linecap="round"/><path d="M118 171l6 7 3-9" fill="none" stroke="#6B6F7A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M232 214c10-18 22-22 30-6s18 10 26-6 20-10 26 2" fill="none" stroke="#FF5C5C" stroke-width="3.5" stroke-linecap="round"/>
+        <path d="M228 240h104" stroke="#FFB020" stroke-width="12" stroke-linecap="round" opacity=".45"/>
+        <rect x="10" y="270" width="96" height="30" rx="9" fill="var(--card)" stroke="var(--line)"/>
+        <text x="58" y="290" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--faint)">−  100%  +</text>
+      </svg>
+    </div>
   </header>
 
-  <section id="start">
-    <h2>Get started in 10 seconds</h2>
-    <p class="sub">The pen is already selected. Just start drawing.</p>
+  <section id="start" aria-labelledby="start-h">
+    <div class="sec-head"><h2 id="start-h">Start in ten seconds</h2><p>The pen is already selected. Everything else is one tap away in the tool rail on the left (or along the bottom on a phone).</p></div>
     <ol class="steps">
-      <li><b>Draw.</b> Drag with your finger, stylus or mouse.</li>
-      <li><b>Hold still</b> at the end of a stroke for a moment and it snaps into a clean line, circle, rectangle, triangle or arrow.</li>
-      <li><b>Pan and zoom.</b> Pinch with two fingers, or scroll your mouse wheel. Hold <kbd>Space</kbd> and drag to pan.</li>
-      <li><b>Open the top-right menu</b> (the little arrow) to save, export, change paper and switch to dark mode.</li>
+      <li><b>Draw.</b> Drag with a finger, stylus or mouse. Stylus pressure makes lines thicker.</li>
+      <li><b>Hold still</b> at the end of a stroke and it snaps into a clean line, arrow, circle, rectangle or triangle. Keep dragging to adjust a snapped line.</li>
+      <li><b>Pan and zoom.</b> Pinch with two fingers or scroll the mouse wheel. Hold <kbd>Space</kbd> and drag to pan.</li>
+      <li><b>Open the menu</b> (top left) to save, export, change paper, add pages or switch to dark mode.</li>
     </ol>
   </section>
 
-  <section id="features">
-    <h2>Everything it can do</h2>
-    <p class="sub">Tap any tool in the toolbar. Keyboard shortcuts are in brackets.</p>
+  <section id="features" aria-labelledby="feat-h">
+    <div class="sec-head"><h2 id="feat-h">Everything it can do</h2><p>Keyboard shortcuts are shown next to each tool. On touch screens every action also has a button.</p></div>
     <div class="grid">
-      <div class="card"><h3><i>✏️</i>Pressure-sensitive pen <kbd>P</kbd></h3><p>Smooth, curved strokes. With a stylus, harder presses draw thicker lines. Pick any colour and size.</p></div>
-      <div class="card"><h3><i>🖍️</i>Highlighter <kbd>M</kbd></h3><p>Translucent strokes that blend over text and PDFs. They never auto-snap, so underlines stay as you drew them.</p></div>
-      <div class="card"><h3><i>✨</i>Auto-snap shapes</h3><p>Pause at the end of a stroke and your wobbly drawing becomes a perfect line, ellipse, rectangle, triangle or arrow.</p></div>
-      <div class="card"><h3><i>🧽</i>Two erasers <kbd>E</kbd> <kbd>X</kbd></h3><p>The stroke eraser removes whole strokes. The precision eraser cuts straight through a path and removes only the part you touch.</p></div>
-      <div class="card"><h3><i>◻️</i>Shapes</h3><p>Rectangle <kbd>R</kbd>, ellipse <kbd>O</kbd>, triangle <kbd>T</kbd> and arrow <kbd>A</kbd>. Drag to size them.</p></div>
-      <div class="card"><h3><i>💬</i>Text nodes <kbd>N</kbd></h3><p>Drop a labelled box anywhere. Double-click (or double-tap on touch) to rename it.</p></div>
-      <div class="card"><h3><i>🔗</i>Connectors <kbd>C</kbd></h3><p>Drag from one shape to another to link them. The line stays attached when you move things, so it's great for mind maps and flowcharts.</p></div>
-      <div class="card"><h3><i>📄</i>PDF and image import</h3><p>Drag a file onto the page or tap the image button. PDF pages become annotatable sheets. Drag corners to resize.</p></div>
-      <div class="card"><h3><i>🔍</i>Truly infinite canvas</h3><p>Zoom from 5% to 4000%. It's vector-based, so lines stay razor sharp at any zoom level.</p></div>
-      <div class="card"><h3><i>📐</i>8 paper templates</h3><p>Blueprint grid, dot grid, graph paper, lined paper, Cornell notes, isometric grid, music staves and blank.</p></div>
-      <div class="card"><h3><i>🌙</i>Dark mode</h3><p>One tap switches between light paper and dark. Black ink flips to white automatically so it's always readable.</p></div>
-      <div class="card"><h3><i>↩️</i>Undo and redo</h3><p><kbd>Ctrl</kbd>+<kbd>Z</kbd> and <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd>, or use the toolbar buttons. Covers drawing, moving, deleting and imports.</p></div>
+      <div class="feat"><h3><svg class="ic" aria-hidden="true"><use href="#g-pen"/></svg>Pressure-sensitive pen <kbd>P</kbd></h3><p>Smooth, curved ink with true variable width from your stylus. Adjustable stroke smoothing steadies shaky lines.</p></div>
+      <div class="feat"><h3><svg class="ic" aria-hidden="true"><use href="#g-hl"/></svg>Highlighter <kbd>M</kbd></h3><p>Translucent ink that blends over text and PDFs. It never auto-snaps, so underlines stay exactly as drawn. Remembers its own colour.</p></div>
+      <div class="feat"><h3><svg class="ic" aria-hidden="true"><use href="#g-snap"/></svg>Shape recognition</h3><p>Pause at the end of a stroke and a wobbly drawing becomes a perfect line, arrow, ellipse, rectangle or triangle.</p></div>
+      <div class="feat"><h3><svg class="ic" aria-hidden="true"><use href="#g-eraser"/></svg>Two erasers <kbd>E</kbd> <kbd>X</kbd></h3><p>The stroke eraser removes whole strokes. The precision eraser cuts straight through a path and removes only what you touch. Imported pages are never erased by accident.</p></div>
+      <div class="feat"><h3><svg class="ic" aria-hidden="true"><use href="#g-shapes"/></svg>Shapes</h3><p>Rectangle <kbd>R</kbd>, ellipse <kbd>O</kbd>, triangle <kbd>⇧T</kbd>, diamond <kbd>D</kbd>, line <kbd>⇧L</kbd> and arrow <kbd>A</kbd>, with tinted or solid fills and dashed outlines. Hold Shift for squares and 45° angles.</p></div>
+      <div class="feat"><h3><svg class="ic" aria-hidden="true"><use href="#g-text"/></svg>Text and text boxes <kbd>T</kbd> <kbd>N</kbd></h3><p>Click anywhere to type a label, or drop a rounded text box for diagrams. Double-click any text to edit it. Paste plain text straight onto the board.</p></div>
+      <div class="feat"><h3><svg class="ic" aria-hidden="true"><use href="#g-sticky"/></svg>Sticky notes <kbd>S</kbd></h3><p>Colour-coded notes for brainstorming and planning. They grow to fit what you write.</p></div>
+      <div class="feat"><h3><svg class="ic" aria-hidden="true"><use href="#g-conn"/></svg>Connectors <kbd>C</kbd></h3><p>Drag from one item to another to link them. Lines stay attached as you move things, so mind maps and flowcharts stay tidy.</p></div>
+      <div class="feat"><h3><svg class="ic" aria-hidden="true"><use href="#g-select"/></svg>Select, move, resize <kbd>V</kbd></h3><p>Drag a box to select, drag corners to resize, Alt-drag to duplicate. Copy, paste, recolour, reorder or lock anything from the floating selection bar.</p></div>
+      <div class="feat"><h3><svg class="ic" aria-hidden="true"><use href="#g-pdf"/></svg>PDF and image import</h3><p>Drag files onto the board, paste a screenshot, or use the import button. On a paper page each PDF page becomes its own locked sheet you can write on.</p></div>
+      <div class="feat"><h3><svg class="ic" aria-hidden="true"><use href="#g-pages"/></svg>Pages</h3><p>Mix infinite canvases with portrait and landscape paper pages in one board. Reorder by dragging thumbnails, duplicate, rename, export ranges.</p></div>
+      <div class="feat"><h3><svg class="ic" aria-hidden="true"><use href="#g-zoom"/></svg>Truly infinite</h3><p>Zoom from 5% to 4000%. Everything is stored as vectors, so lines stay razor sharp at any zoom level.</p></div>
+      <div class="feat"><h3><svg class="ic" aria-hidden="true"><use href="#g-paper"/></svg>8 paper templates</h3><p>Blueprint grid, dot grid, graph, lined, Cornell notes, isometric, music staves and blank, set per page.</p></div>
+      <div class="feat"><h3><svg class="ic" aria-hidden="true"><use href="#g-laser"/></svg>Laser pointer <kbd>L</kbd></h3><p>A fading red trail for presenting or screen sharing. It never touches your drawing.</p></div>
+      <div class="feat"><h3><svg class="ic" aria-hidden="true"><use href="#g-palm"/></svg>Palm rejection</h3><p>Use a stylus once and fingers switch to panning and zooming, so your hand can rest on the screen.</p></div>
+      <div class="feat"><h3><svg class="ic" aria-hidden="true"><use href="#g-moon"/></svg>Light, dark or system</h3><p>Dark mode flips black ink to white automatically so it’s always readable. Exports stay on white.</p></div>
+      <div class="feat"><h3><svg class="ic" aria-hidden="true"><use href="#g-undo"/></svg>Undo and redo</h3><p><kbd>Ctrl</kbd>+<kbd>Z</kbd> and <kbd>Ctrl</kbd>+<kbd>⇧</kbd>+<kbd>Z</kbd> cover drawing, moving, styling, imports and page changes.</p></div>
     </div>
   </section>
 
-  <section id="save">
-    <h2>Never lose your work</h2>
-    <p class="sub">Your drawing is safe, and portable too.</p>
+  <section id="save" aria-labelledby="save-h">
+    <div class="sec-head"><h2 id="save-h">Never lose your work</h2><p>Your board is saved in this browser as you draw, with room for large PDFs. Files make it portable.</p></div>
     <div class="grid">
-      <div class="card"><h3><i>💾</i>Auto-save</h3><p>Everything is saved in your browser as you draw. Close the tab and come back later, and it's still there.</p></div>
-      <div class="card"><h3><i>📁</i>Save and open files</h3><p>Save your whole canvas as a small <kbd>.json</kbd> file, including shapes, connectors and imported pages. Move it to another device or back it up.</p></div>
-      <div class="card"><h3><i>🖼️</i>Export PNG or SVG</h3><p>Download a high-resolution PNG, or a scalable SVG for slides, print and design tools.</p></div>
+      <div class="feat"><h3><svg class="ic" aria-hidden="true"><use href="#g-check"/></svg>Auto-save</h3><p>Every change is stored on your device. Close the tab and come back later and it’s all there. Drawings from older versions are brought over automatically.</p></div>
+      <div class="feat"><h3><svg class="ic" aria-hidden="true"><use href="#g-save"/></svg>Save and open files</h3><p>Save the whole board, pages and imported PDFs included, as one <kbd>.json</kbd> file. <kbd>Ctrl</kbd>+<kbd>S</kbd> keeps saving to the same file.</p></div>
+      <div class="feat"><h3><svg class="ic" aria-hidden="true"><use href="#g-dl"/></svg>Export PNG, SVG or PDF</h3><p>Export a page, a selection, a page range or every page. Pick 1×–3× resolution, transparent backgrounds, with or without the paper template. Multi-page exports arrive as one PDF or a ZIP.</p></div>
+      <div class="feat"><h3><svg class="ic" aria-hidden="true"><use href="#g-clip"/></svg>Copy as image</h3><p>Copy a page or selection straight to the clipboard and paste it into chat, docs or slides.</p></div>
     </div>
   </section>
 
-  <section id="mobile">
-    <h2>Built for touch</h2>
-    <div class="note">On phones the toolbar sits at the bottom within thumb reach, buttons are larger, and pinch-to-zoom works with two fingers. The menu collapses with the arrow button when you want the full screen to draw on.</div>
+  <section id="install" aria-labelledby="install-h">
+    <div class="sec-head"><h2 id="install-h">Install it like an app</h2><p>Once installed, Vector Plane opens full screen from your home screen and works with no connection at all.</p></div>
+    <div class="install">
+      <div class="platform"><h3><svg class="ic" aria-hidden="true"><use href="#g-phone"/></svg>iPhone and iPad</h3><p>Open the app in <b>Safari</b>, tap <b>Share</b>, then <b>Add to Home Screen</b>.</p></div>
+      <div class="platform"><h3><svg class="ic" aria-hidden="true"><use href="#g-phone"/></svg>Android</h3><p>In <b>Chrome</b>, open the <b>⋮</b> menu and choose <b>Install app</b>. You can also use <b>Install app</b> in Vector Plane’s own menu.</p></div>
+      <div class="platform"><h3><svg class="ic" aria-hidden="true"><use href="#g-desktop"/></svg>Desktop</h3><p>In Chrome or Edge, click the install icon at the right of the address bar. Installed, it can open board files directly.</p></div>
+      <div class="platform"><h3><svg class="ic" aria-hidden="true"><use href="#g-offline"/></svg>Offline</h3><p>The app, PDF import and exports are stored on your device after the first visit, so they keep working on a plane.</p></div>
+    </div>
   </section>
 
-  <section id="keys">
-    <h2>Keyboard shortcuts</h2>
-    <p class="sub">For desktop and Chromebook.</p>
-    <div class="scroll"><table>
-      <tr><th>Key</th><th>Action</th></tr>
-      <tr><td><kbd>P</kbd></td><td>Pen</td></tr>
-      <tr><td><kbd>M</kbd></td><td>Highlighter</td></tr>
-      <tr><td><kbd>E</kbd> / <kbd>X</kbd></td><td>Stroke eraser / Precision eraser</td></tr>
-      <tr><td><kbd>V</kbd></td><td>Select and move</td></tr>
-      <tr><td><kbd>H</kbd> or hold <kbd>Space</kbd></td><td>Pan the canvas</td></tr>
-      <tr><td><kbd>R</kbd> <kbd>O</kbd> <kbd>T</kbd> <kbd>A</kbd></td><td>Rectangle, ellipse, triangle, arrow</td></tr>
-      <tr><td><kbd>N</kbd> / <kbd>C</kbd></td><td>Text node / Connector</td></tr>
-      <tr><td><kbd>0</kbd></td><td>Reset view</td></tr>
-      <tr><td><kbd>Del</kbd></td><td>Delete selection</td></tr>
-      <tr><td><kbd>Ctrl</kbd>+<kbd>Z</kbd></td><td>Undo (add <kbd>Shift</kbd> to redo)</td></tr>
-    </table></div>
+  <section id="keys" aria-labelledby="keys-h">
+    <div class="sec-head"><h2 id="keys-h">Keyboard shortcuts</h2><p>Press <kbd>?</kbd> in the app to see these any time.</p></div>
+    <div class="table"><div class="table-scroll"><table>
+      <thead><tr><th scope="col">Key</th><th scope="col">Action</th></tr></thead>
+      <tbody>
+        <tr><td><kbd>V</kbd> · <kbd>H</kbd> or hold <kbd>Space</kbd></td><td>Select · Pan</td></tr>
+        <tr><td><kbd>P</kbd> · <kbd>M</kbd> · <kbd>L</kbd></td><td>Pen · Highlighter · Laser pointer</td></tr>
+        <tr><td><kbd>E</kbd> · <kbd>X</kbd></td><td>Stroke eraser · Precision eraser</td></tr>
+        <tr><td><kbd>R</kbd> <kbd>O</kbd> <kbd>⇧T</kbd> <kbd>D</kbd> <kbd>⇧L</kbd> <kbd>A</kbd></td><td>Rectangle, ellipse, triangle, diamond, line, arrow</td></tr>
+        <tr><td><kbd>T</kbd> · <kbd>N</kbd> · <kbd>S</kbd> · <kbd>C</kbd></td><td>Text · Text box · Sticky note · Connector</td></tr>
+        <tr><td><kbd>Ctrl</kbd> <kbd>Z</kbd> · <kbd>Ctrl</kbd> <kbd>⇧</kbd> <kbd>Z</kbd></td><td>Undo · Redo</td></tr>
+        <tr><td><kbd>Ctrl</kbd> <kbd>C</kbd> / <kbd>X</kbd> / <kbd>V</kbd> / <kbd>D</kbd></td><td>Copy · Cut · Paste · Duplicate</td></tr>
+        <tr><td><kbd>Del</kbd> · arrow keys · <kbd>[</kbd> <kbd>]</kbd></td><td>Delete · Nudge · Send back / bring to front</td></tr>
+        <tr><td><kbd>0</kbd> · <kbd>⇧0</kbd> · <kbd>+</kbd> <kbd>−</kbd></td><td>Fit to screen · 100% · Zoom</td></tr>
+        <tr><td><kbd>PgUp</kbd> · <kbd>PgDn</kbd> · <kbd>Ctrl</kbd> <kbd>⇧</kbd> <kbd>N</kbd></td><td>Previous · Next · New paper page</td></tr>
+        <tr><td><kbd>Ctrl</kbd> <kbd>S</kbd> · <kbd>Ctrl</kbd> <kbd>O</kbd> · <kbd>Ctrl</kbd> <kbd>⇧</kbd> <kbd>E</kbd></td><td>Save · Open · Export</td></tr>
+        <tr><td><kbd>\</kbd></td><td>Focus mode (hide all tools)</td></tr>
+      </tbody>
+    </table></div></div>
   </section>
 
   <footer>
-    <a class="btn" href="https://zxdr4gon.github.io/vectorboard/?ref=guide-doc">Open the canvas</a>
-    <div>Made with plain HTML, CSS and JavaScript. No tracking, no sign-up.</div>
-    <div>Guide generated by Claude</div?
+    <a class="btn btn-primary" href="./?ref=guide-doc" data-track="footer">Open the canvas<svg class="ic" aria-hidden="true"><use href="#g-arrow"/></svg></a>
+    <div>Plain HTML, CSS and JavaScript. No account, no ads. Guide written with Claude.</div>
   </footer>
-
 </div>
-<script data-goatcounter="https://zx0409.goatcounter.com/count"
-        async src="//gc.zgo.at/count.js"></script>
 
-  <script>
-document.querySelectorAll('a.btn[href="./"]').forEach(function(a){
-  a.addEventListener('click', function(){
-    try {
-      if (window.goatcounter && goatcounter.count) {
-        goatcounter.count({ path: 'click-open-canvas', title: 'Clicked Open the canvas', event: true });
-      }
-    } catch(e){}
+<script data-goatcounter="https://zx0409.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+<script>
+  document.querySelectorAll('a[data-track]').forEach(function (a) {
+    a.addEventListener('click', function () {
+      try {
+        if (window.goatcounter && goatcounter.count) {
+          goatcounter.count({ path: 'click-open-canvas', title: 'Clicked Open the canvas (' + a.dataset.track + ')', event: true });
+        }
+      } catch (e) {}
+    });
   });
-});
 </script>
-  
 </body>
 </html>
