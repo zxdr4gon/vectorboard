@@ -4,13 +4,13 @@
      and export keep working offline.
    Bump VERSION whenever shell files change. */
 
-const VERSION = 'vp-2026-11-04c';
+const VERSION = 'vp-2026-11-04d';
 const SHELL = `${VERSION}-shell`;
 const RUNTIME = 'vp-runtime-v1';
 
 const SHELL_FILES = [
   './', './index.html', './studio.html', './guide.html', './css/app.css', './css/studio.css',
-  './js/app.js', './js/studio.js', './js/geometry.js', './js/render.js', './js/store.js',
+  './js/app.js', './js/studio.js', './js/themes.js', './js/geometry.js', './js/render.js', './js/store.js',
   './manifest.webmanifest', './studio.webmanifest', './icons/favicon.svg', './icons/icon-192.png', './icons/icon-512.png',
   './icons/maskable-512.png', './icons/apple-touch-icon.png',
   './icons/studio-favicon.svg', './icons/studio-192.png', './icons/studio-512.png', './icons/studio-maskable-512.png', './icons/studio-apple-touch.png',

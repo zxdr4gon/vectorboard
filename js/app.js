@@ -36,7 +36,7 @@ const TOOL_NAMES = {
 // They all stay null in the classic UI, so these branches never run there.
 export const ui = {
   insets: null, selLimits: null, themeColor: null, flyoutSide: null, styleAlways: false,
-  openPages: null, onFrame: null, onContext: null, onChange: null, onPage: null, onTheme: null,
+  darkMode: null, openPages: null, onFrame: null, onContext: null, onChange: null, onPage: null, onTheme: null,
 };
 const isPhone = () => window.matchMedia('(max-width: 720px)').matches;
 const coarse = () => window.matchMedia('(pointer: coarse)').matches;
@@ -595,8 +595,9 @@ function render() {
   const W = canvas.width, H = canvas.height;
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
-  ctx.fillStyle = page.kind === 'paper' ? th.desk : th.paper;
-  ctx.fillRect(0, 0, W, H);
+  // A see-through theme lets the page background show behind the board.
+  if (th.seeThrough) ctx.clearRect(0, 0, W, H);
+  else { ctx.fillStyle = page.kind === 'paper' ? th.desk : th.paper; ctx.fillRect(0, 0, W, H); }
   const z = camera.zoom;
   ctx.setTransform(dpr * z, 0, 0, dpr * z, dpr * camera.panX, dpr * camera.panY);
   const view = viewRect();
@@ -2429,7 +2430,7 @@ window.addEventListener('blur', () => { spaceDown = false; updateCursor(); });
 // ---------------------------------------------------------------------------
 const darkMQ = window.matchMedia('(prefers-color-scheme: dark)');
 function applyTheme() {
-  isDark = settings.theme === 'dark' || (settings.theme === 'system' && darkMQ.matches);
+  isDark = ui.darkMode ? ui.darkMode() : settings.theme === 'dark' || (settings.theme === 'system' && darkMQ.matches);
   document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
   const bar = ui.themeColor ? ui.themeColor(isDark) : isDark ? '#121316' : '#EDEEF1';
   document.querySelectorAll('meta[name="theme-color"]').forEach((m) => m.setAttribute('content', bar));
@@ -2567,7 +2568,7 @@ export const vp = {
   alignSelection, distributeSelection, copySelection,
   pasteLocal: () => pasteClip(localClip),
   promptInstall,
-  setTheme(t) { settings.theme = t; saveSettings(); applyTheme(); syncThemeSeg(); },
+  applyTheme,
   setToolStyle(tool, patch) { Object.assign(settings.styles[styleKey(tool)], patch); saveSettings(); updateStylePanel(); requestRender(); },
   selectAt(sx, sy) {
     const hit = hitTest(screenToWorld(sx, sy), true);

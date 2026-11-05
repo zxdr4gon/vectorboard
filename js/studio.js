@@ -6,27 +6,13 @@
 import { vp, ui, ready } from './app.js';
 import * as R from './render.js';
 import * as G from './geometry.js';
+import { THEMES, FONTS, DEFAULT_THEME, resolveLook } from './themes.js';
 
 const $ = (id) => document.getElementById(id);
 const canvas = $('c');
 const phoneMQ = window.matchMedia('(max-width: 720px)');
 const isPhone = () => phoneMQ.matches;
 const touchFirst = () => window.matchMedia('(pointer: coarse)').matches;
-
-R.setPalette({
-  light: {
-    paper: '#F3EFE6', desk: '#DDD6C7', sheet: '#FFFDF8', sheetEdge: 'rgba(42,34,22,0.16)',
-    gridMajor: 'rgba(42,34,22,0.11)', gridMinor: 'rgba(42,34,22,0.05)',
-    axisX: 'rgba(200,55,27,0.32)', axisY: 'rgba(42,34,22,0.26)',
-    connector: 'rgba(29,26,21,0.6)', select: '#C8371B', selectFill: 'rgba(200,55,27,0.08)',
-  },
-  dark: {
-    paper: '#171511', desk: '#0F0E0B', sheet: '#1E1B16', sheetEdge: 'rgba(255,245,225,0.16)',
-    gridMajor: 'rgba(255,245,225,0.13)', gridMinor: 'rgba(255,245,225,0.055)',
-    axisX: 'rgba(255,115,80,0.45)', axisY: 'rgba(255,245,225,0.28)',
-    connector: 'rgba(233,227,214,0.72)', select: '#FF7350', selectFill: 'rgba(255,115,80,0.12)',
-  },
-});
 
 // ---------------------------------------------------------------------------
 // per-device workspace state
@@ -51,6 +37,39 @@ const prefs = (() => {
 function savePrefs() { try { localStorage.setItem(KEY, JSON.stringify(prefs)); } catch (e) {} }
 
 // ---------------------------------------------------------------------------
+// look: the chosen theme and font, kept apart from Classic's light/dark setting
+// ---------------------------------------------------------------------------
+const LOOK_KEY = 'vp-studio-look';
+const systemDark = window.matchMedia('(prefers-color-scheme: dark)');
+const choice = (() => {
+  let s = {};
+  try { s = JSON.parse(localStorage.getItem(LOOK_KEY) || '{}') || {}; } catch (e) {}
+  return { theme: s.theme || DEFAULT_THEME, font: s.font || 'auto' };
+})();
+let look = resolveLook(choice.theme, choice.font === 'auto' ? null : choice.font, systemDark.matches);
+
+function paintLook() {
+  const root = document.documentElement;
+  for (const [k, v] of Object.entries(look.vars)) root.style.setProperty(k, v);
+  root.classList.toggle('glass', look.glass);
+  R.setPalette({ [look.dark ? 'dark' : 'light']: look.canvasColors });
+  let link = $('lookFont');
+  if (look.fontHref) {
+    if (!link) { link = document.createElement('link'); link.rel = 'stylesheet'; link.id = 'lookFont'; document.head.appendChild(link); }
+    if (link.getAttribute('href') !== look.fontHref) link.href = look.fontHref;
+  } else if (link) link.remove();
+}
+function setLook(patch) {
+  Object.assign(choice, patch);
+  look = resolveLook(choice.theme, choice.font === 'auto' ? null : choice.font, systemDark.matches);
+  try { localStorage.setItem(LOOK_KEY, JSON.stringify({ ...choice, vars: look.vars, dark: look.dark, glass: look.glass, fontHref: look.fontHref })); } catch (e) {}
+  paintLook();
+  vp.applyTheme();
+  syncGallery();
+}
+systemDark.addEventListener('change', () => { if (choice.theme === 'system') setLook({}); });
+
+// ---------------------------------------------------------------------------
 // engine hooks. These must be in place before the board finishes loading.
 // ---------------------------------------------------------------------------
 const panelW = () => ({
@@ -59,7 +78,8 @@ const panelW = () => ({
 });
 ui.styleAlways = true;
 ui.flyoutSide = 'top';
-ui.themeColor = (dark) => (dark ? '#1F1C17' : '#FAF7F0');
+ui.themeColor = () => look.themeColor;
+ui.darkMode = () => look.dark;
 ui.insets = () => {
   if (isPhone()) return { top: 64, bottom: 76, left: 12, right: 12 };
   const w = panelW();
@@ -284,9 +304,7 @@ add('zoomsel', 'Zoom to selection', 'fit', () => vp.zoomToSelection(), { key: '�
 add('togglepages', 'Pages sidebar', 'side-l', () => setPages(!prefs.pages), { key: 'Ctrl B', desk: true, on: () => prefs.pages });
 add('toggleinsp', 'Inspector', 'side-r', () => setInsp(!prefs.insp), { key: 'Ctrl I', desk: true, on: () => prefs.insp });
 add('zen', 'Focus mode', 'focus', () => vp.setZen(true), { key: '\\' });
-add('light', 'Light theme', 'sun', () => vp.setTheme('light'), { on: () => vp.settings.theme === 'light' });
-add('dark', 'Dark theme', 'moon', () => vp.setTheme('dark'), { on: () => vp.settings.theme === 'dark' });
-add('system', 'Match system theme', 'monitor', () => vp.setTheme('system'), { on: () => vp.settings.theme === 'system' });
+add('themes', 'Themes and fonts…', 'palette', () => openGallery());
 
 add('newpaper', 'New paper page', 'portrait', () => vp.addPage('paper', 'portrait'), { key: 'Ctrl ⇧ N' });
 add('newwide', 'New landscape page', 'landscape', () => vp.addPage('paper', 'landscape'));
@@ -317,11 +335,13 @@ for (const [m, label, icon] of [['left', 'Align left', 'al-l'], ['hcenter', 'Ali
 }
 add('dist-x', 'Space evenly across', 'di-x', () => vp.distributeSelection('x'), { when: threePlus, group: 'Arrange' });
 add('dist-y', 'Space evenly down', 'di-y', () => vp.distributeSelection('y'), { when: threePlus, group: 'Arrange' });
+for (const t of THEMES) add('theme-' + t.id, `Theme: ${t.name}`, 'palette', () => setLook({ theme: t.id }), { group: 'Themes', on: () => choice.theme === t.id });
+for (const f of FONTS) add('font-' + f.id, `Font: ${f.label}`, 'text', () => setLook({ font: f.id }), { group: 'Fonts', on: () => choice.font === f.id });
 
 const MENUS = [
   ['File', ['new', 'open', '-', 'save', 'saveas', '-', 'import', 'export', '-', 'install', 'settings']],
   ['Edit', ['undo', 'redo', '-', 'cut', 'copy', 'paste', 'duplicate', 'delete', '-', 'selectall', '-', 'front', 'back', 'lock', 'unlock']],
-  ['View', ['zoomin', 'zoomout', 'zoom100', 'fit', 'zoomsel', '-', 'togglepages', 'toggleinsp', 'zen', '-', 'light', 'dark', 'system']],
+  ['View', ['zoomin', 'zoomout', 'zoom100', 'fit', 'zoomsel', '-', 'togglepages', 'toggleinsp', 'zen', '-', 'themes']],
   ['Page', ['newpaper', 'newwide', 'newcanvas', '-', 'prevpage', 'nextpage', '-', 'renamepage', 'duppage', 'template', '-', 'clear', 'delpage']],
   ['Help', ['search', 'shortcuts', 'guide', '-', 'classic']],
 ];
@@ -381,6 +401,7 @@ mbMenu.addEventListener('click', (e) => {
 // phone main menu: the two entries the engine does not know about
 $('mainMenu').addEventListener('click', (e) => {
   if (e.target.closest('[data-scmd="search"]')) { vp.closePopovers(); openPalette(); }
+  if (e.target.closest('[data-scmd="themes"]')) { vp.closePopovers(); openGallery(); }
 });
 
 // ---------------------------------------------------------------------------
@@ -592,9 +613,8 @@ function drawMinimap() {
   map = m;
   mctx.imageSmoothingQuality = 'high';
   if (base) mctx.drawImage(baseCv, m.ox + base.minX * m.k, m.oy + base.minY * m.k, (base.maxX - base.minX) * m.k, (base.maxY - base.minY) * m.k);
-  const accent = vp.isDark ? '#FF7350' : '#C8371B';
-  mctx.lineWidth = 1.5; mctx.strokeStyle = accent;
-  mctx.fillStyle = vp.isDark ? 'rgba(255,115,80,0.10)' : 'rgba(200,55,27,0.07)';
+  mctx.lineWidth = 1.5; mctx.strokeStyle = look.accent;
+  mctx.fillStyle = look.accentFill;
   const x = m.ox + view.minX * m.k, y = m.oy + view.minY * m.k, w = (view.maxX - view.minX) * m.k, h = (view.maxY - view.minY) * m.k;
   mctx.fillRect(x, y, w, h); mctx.strokeRect(x, y, w, h);
 }
@@ -645,8 +665,75 @@ welcome.addEventListener('click', (e) => {
 });
 
 // ---------------------------------------------------------------------------
+// theme gallery
+// ---------------------------------------------------------------------------
+const themeDialog = $('themeDialog'), lookBody = $('lookBody');
+function themeCard(t) {
+  const r = resolveLook(t.id, null, systemDark.matches), v = r.vars;
+  const b = document.createElement('button');
+  b.type = 'button'; b.className = 'look-card'; b.dataset.theme = t.id;
+  const prev = document.createElement('span');
+  prev.className = 'look-prev';
+  prev.style.background = v['--backdrop'];
+  for (const [cls, color] of [['lp-side', v['--panel']], ['lp-line', v['--accent']], ['lp-tray', v['--tray']], ['lp-dot', v['--tray-on']]]) {
+    const i = document.createElement('i'); i.className = cls; i.style.background = color; prev.appendChild(i);
+  }
+  const name = document.createElement('span'); name.textContent = t.name;
+  b.append(prev, name);
+  return b;
+}
+function buildGallery() {
+  lookBody.innerHTML = '';
+  for (const group of ['Exotic', 'Basic']) {
+    const h = document.createElement('p'); h.className = 'look-head'; h.textContent = group;
+    const grid = document.createElement('div'); grid.className = 'look-grid'; grid.setAttribute('role', 'group'); grid.setAttribute('aria-label', `${group} themes`);
+    for (const t of THEMES) if (t.group === group) grid.appendChild(themeCard(t));
+    lookBody.append(h, grid);
+  }
+  const h = document.createElement('p'); h.className = 'look-head'; h.textContent = 'Font';
+  const grid = document.createElement('div'); grid.className = 'look-fonts'; grid.setAttribute('role', 'group'); grid.setAttribute('aria-label', 'Font');
+  const auto = document.createElement('button');
+  auto.type = 'button'; auto.className = 'look-font'; auto.dataset.font = 'auto'; auto.textContent = 'Match theme';
+  grid.appendChild(auto);
+  for (const f of FONTS) {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'look-font'; b.dataset.font = f.id; b.textContent = f.label;
+    if (f.display) b.style.fontFamily = `'${f.display}', sans-serif`;
+    grid.appendChild(b);
+  }
+  lookBody.append(h, grid);
+}
+function syncGallery() {
+  lookBody.querySelectorAll('.look-card').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.theme === choice.theme)));
+  lookBody.querySelectorAll('.look-font').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.font === choice.font)));
+}
+let fontsPreviewed = false;
+function openGallery() {
+  vp.closePopovers();
+  if (!lookBody.childElementCount) buildGallery();
+  syncGallery();
+  // Each font button is set in its own face, so load them only when someone looks.
+  if (!fontsPreviewed) {
+    fontsPreviewed = true;
+    const fams = [...new Set(FONTS.flatMap((f) => [f.display]).filter(Boolean))].map((f) => 'family=' + f.replace(/ /g, '+') + ':wght@600').join('&');
+    const l = document.createElement('link'); l.rel = 'stylesheet';
+    l.href = `https://fonts.googleapis.com/css2?${fams}&display=swap&text=${encodeURIComponent(FONTS.map((f) => f.label).join(''))}`;
+    document.head.appendChild(l);
+  }
+  themeDialog.showModal();
+}
+lookBody.addEventListener('click', (e) => {
+  const t = e.target.closest('.look-card'), f = e.target.closest('.look-font');
+  if (t) setLook({ theme: t.dataset.theme });
+  else if (f) setLook({ font: f.dataset.font });
+});
+$('themeBtn').addEventListener('click', openGallery);
+
+// ---------------------------------------------------------------------------
 // start
 // ---------------------------------------------------------------------------
+paintLook();
+vp.applyTheme();
 renderPens();
 ready.then(() => {
   syncContext(vp.panelContext());
