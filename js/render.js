@@ -21,7 +21,14 @@ export const TEMPLATES = [
   { id: 'blank', label: 'Blank' },
 ];
 
+// An alternate shell can retint the canvas; unset fields keep the defaults below.
+let palette = null;
+export function setPalette(p) { palette = p; }
 export function themeColors(dark) {
+  const base = baseColors(dark);
+  return palette ? { ...base, ...palette[dark ? 'dark' : 'light'] } : base;
+}
+function baseColors(dark) {
   return dark ? {
     paper: '#121316', desk: '#0B0C0E', sheet: '#17181C', sheetEdge: 'rgba(255,255,255,0.14)',
     gridMajor: 'rgba(255,255,255,0.15)', gridMinor: 'rgba(255,255,255,0.065)',

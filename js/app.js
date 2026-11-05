@@ -32,6 +32,12 @@ const TOOL_NAMES = {
   'eraser-precision': 'Precision eraser', laser: 'Laser pointer', rect: 'Rectangle', ellipse: 'Ellipse', triangle: 'Triangle',
   diamond: 'Diamond', line: 'Line', arrow: 'Arrow', text: 'Text', node: 'Text box', sticky: 'Sticky note', connector: 'Connector',
 };
+// Hooks for an alternate shell around this engine (see studio.html and js/studio.js).
+// They all stay null in the classic UI, so these branches never run there.
+export const ui = {
+  insets: null, selLimits: null, themeColor: null, flyoutSide: null, styleAlways: false,
+  openPages: null, onFrame: null, onContext: null, onChange: null, onPage: null, onTheme: null,
+};
 const isPhone = () => window.matchMedia('(max-width: 720px)').matches;
 const coarse = () => window.matchMedia('(pointer: coarse)').matches;
 const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -72,7 +78,7 @@ const settings = (() => {
 let settingsTimer = null;
 // On phones the style sheet covers the canvas, so it starts closed each session.
 let phoneStyleOpen = false;
-const styleIsOpen = () => (isPhone() ? phoneStyleOpen : settings.styleOpen);
+const styleIsOpen = () => (isPhone() ? phoneStyleOpen : ui.styleAlways || settings.styleOpen);
 function setStyleOpen(v) {
   if (isPhone()) phoneStyleOpen = v; else { settings.styleOpen = v; saveSettings(); }
   updateStylePanel();
@@ -158,6 +164,7 @@ let saveTimer = null, saving = false, saveQueued = false, persistAsked = false, 
 function setSaveState(text, cls) { saveStateEl.textContent = text; saveStateEl.className = 'save-state' + (cls ? ' ' + cls : ''); }
 function markDirty() {
   thumbsDirty = true;
+  if (ui.onChange) ui.onChange();
   setSaveState('Saving…', 'busy');
   clearTimeout(saveTimer);
   saveTimer = setTimeout(flushSave, 500);
@@ -267,6 +274,7 @@ function animateCamera(target, ms = 220) {
 }
 function chromeInsets() {
   // Keep fitted content clear of the floating UI.
+  if (ui.insets) return ui.insets();
   if (isPhone()) return { top: 64, bottom: 76, left: 12, right: 12 };
   return { top: 70, bottom: 64, left: 72, right: 24 };
 }
@@ -403,6 +411,7 @@ function updatePageUI() {
   $('prevPageBtn').disabled = i === 0;
   $('nextPageBtn').disabled = i === doc.pages.length - 1;
   document.title = doc.title && doc.title !== 'Untitled board' ? `${doc.title} — Vector Plane` : 'Vector Plane';
+  if (ui.onPage) ui.onPage();
 }
 
 // ---------------------------------------------------------------------------
@@ -477,6 +486,7 @@ function panelContext() {
 }
 function updateStylePanel() {
   const c = panelContext();
+  if (ui.onContext) ui.onContext(c);
   const relevant = !!c && !(c.mode === 'tool' && state.tool === 'select');
   const show = relevant && styleIsOpen() && !document.body.classList.contains('zen');
   stylePanel.hidden = !show;
@@ -619,6 +629,7 @@ function render() {
   positionSelBar();
   if (editing) positionEditor();
   $('zoomVal').textContent = Math.round(camera.zoom * 100) + '%';
+  if (ui.onFrame) ui.onFrame();
 }
 function drawOverlaysWorld(th) {
   const rc = renderCtx();
@@ -1225,6 +1236,44 @@ function nudge(dx, dy) {
 }
 let nudgeActive = false;
 
+// Line selected items up along one edge or centre of their combined bounds.
+function alignSelection(mode) {
+  const items = selectedItems();
+  if (items.length < 2) return;
+  const all = G.itemsBBox(items);
+  pushHistory();
+  for (const it of items) {
+    const b = G.getBBox(it);
+    let dx = 0, dy = 0;
+    if (mode === 'left') dx = all.minX - b.minX;
+    else if (mode === 'right') dx = all.maxX - b.maxX;
+    else if (mode === 'hcenter') dx = (all.minX + all.maxX) / 2 - (b.minX + b.maxX) / 2;
+    else if (mode === 'top') dy = all.minY - b.minY;
+    else if (mode === 'bottom') dy = all.maxY - b.maxY;
+    else if (mode === 'vcenter') dy = (all.minY + all.maxY) / 2 - (b.minY + b.maxY) / 2;
+    G.translateItem(it, dx, dy);
+  }
+  markDirty(); requestRender();
+}
+// Equal gaps between items, keeping the outermost two where they are.
+function distributeSelection(axis) {
+  const items = selectedItems();
+  if (items.length < 3) return;
+  const lo = axis === 'x' ? 'minX' : 'minY', hi = axis === 'x' ? 'maxX' : 'maxY';
+  const rows = items.map((it) => ({ it, b: { ...G.getBBox(it) } })).sort((p, q) => p.b[lo] - q.b[lo]);
+  const start = rows[0].b[lo], end = Math.max(...rows.map((r) => r.b[hi]));
+  const used = rows.reduce((n, r) => n + (r.b[hi] - r.b[lo]), 0);
+  const gap = (end - start - used) / (rows.length - 1);
+  pushHistory();
+  let cursor = start;
+  for (const r of rows) {
+    const d = cursor - r.b[lo];
+    G.translateItem(r.it, axis === 'x' ? d : 0, axis === 'x' ? 0 : d);
+    cursor += (r.b[hi] - r.b[lo]) + gap;
+  }
+  markDirty(); requestRender();
+}
+
 // selection toolbar
 const selBar = $('selBar');
 function positionSelBar() {
@@ -1234,12 +1283,13 @@ function positionSelBar() {
   selBar.querySelector('[data-act="edit"]').hidden = !(items.length === 1 && G.isText(items[0]));
   const b = G.itemsBBox(items), a = worldToScreen(b.minX, b.minY), z = worldToScreen(b.maxX, b.maxY);
   const r = selBar.getBoundingClientRect();
-  const topLimit = isPhone() ? 64 : 64;
+  const lim = ui.selLimits ? ui.selLimits() : { top: 64, bottom: isPhone() ? 80 : 12, left: 8, right: 8 };
+  const topLimit = lim.top;
   let y = a.y - r.height - 14;
   if (y < topLimit) y = z.y + 14;
-  const bottomLimit = innerHeight - (isPhone() ? 80 : 12) - r.height;
+  const bottomLimit = innerHeight - lim.bottom - r.height;
   y = G.clamp(y, topLimit, Math.max(topLimit, bottomLimit));
-  const x = G.clamp((a.x + z.x) / 2 - r.width / 2, 8, innerWidth - r.width - 8);
+  const x = G.clamp((a.x + z.x) / 2 - r.width / 2, lim.left, Math.max(lim.left, innerWidth - r.width - lim.right));
   selBar.style.left = Math.round(x) + 'px'; selBar.style.top = Math.round(y) + 'px';
 }
 selBar.addEventListener('click', (e) => {
@@ -1956,7 +2006,8 @@ function showTip(t) {
   tip.innerHTML = '';
   const label = document.createElement('span'); label.textContent = t.dataset.tip; tip.appendChild(label);
   if (t.dataset.key) { const k = document.createElement('kbd'); k.textContent = t.dataset.key; tip.appendChild(k); }
-  const side = t.closest('.rail') && !isPhone() ? 'right' : t.closest('.rail, .zoombar') ? 'top' : 'bottom';
+  const forced = t.closest('[data-tip-side]');
+  const side = forced ? forced.dataset.tipSide : t.closest('.rail') && !isPhone() ? 'right' : t.closest('.rail, .zoombar') ? 'top' : 'bottom';
   tip.hidden = false;
   const a = t.getBoundingClientRect(), r = tip.getBoundingClientRect();
   let x, y;
@@ -2030,7 +2081,7 @@ document.querySelectorAll('dialog').forEach((d) => d.addEventListener('click', (
 document.querySelectorAll('.tool[data-tool]').forEach((b) => b.addEventListener('click', () => { setTool(b.dataset.tool); if (b.closest('#shapesMenu')) closePopovers(); }));
 $('shapesBtn').addEventListener('click', (e) => {
   if (!SHAPE_TOOLS.has(state.tool) && !(openPop && openPop.el === $('shapesMenu'))) setTool(settings.lastShape);
-  openPopover($('shapesMenu'), e.currentTarget, isPhone() ? 'top' : 'right', { focus: false });
+  openPopover($('shapesMenu'), e.currentTarget, ui.flyoutSide || (isPhone() ? 'top' : 'right'), { focus: false });
 });
 $('styleBtn').addEventListener('click', () => setStyleOpen(stylePanel.hidden));
 $('styleClose').addEventListener('click', () => setStyleOpen(false));
@@ -2134,6 +2185,7 @@ function openTemplateMenu(anchor) {
 const pagesPanel = $('pagesPanel');
 let pageMenuIndex = 0;
 function openPagesPanel() {
+  if (ui.openPages && ui.openPages()) return;
   if (openPop && openPop.el === pagesPanel) { closePopovers(); return; }
   closePopovers();
   renderPagesPanel();
@@ -2379,9 +2431,11 @@ const darkMQ = window.matchMedia('(prefers-color-scheme: dark)');
 function applyTheme() {
   isDark = settings.theme === 'dark' || (settings.theme === 'system' && darkMQ.matches);
   document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
-  document.querySelectorAll('meta[name="theme-color"]').forEach((m) => m.setAttribute('content', isDark ? '#121316' : '#EDEEF1'));
+  const bar = ui.themeColor ? ui.themeColor(isDark) : isDark ? '#121316' : '#EDEEF1';
+  document.querySelectorAll('meta[name="theme-color"]').forEach((m) => m.setAttribute('content', bar));
   paintSwatches(); paintTemplatePreviews(); updateStylePanel(); requestRender();
   if (!pagesPanel.hidden) renderPagesPanel();
+  if (ui.onTheme) ui.onTheme();
 }
 darkMQ.addEventListener('change', () => { if (settings.theme === 'system') applyTheme(); });
 
@@ -2495,4 +2549,34 @@ async function init() {
   handleLaunchParams();
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { requestRender(); });
 }
-init();
+// What an alternate shell can drive. Nothing in the classic UI reads this.
+function paintCurrentThumb() {
+  const el = document.querySelector('#pageGrid .thumb.current');
+  if (el) paintThumb(page, el.querySelector('canvas'), el.querySelector('.thumb-btn'));
+}
+export const vp = {
+  get doc() { return doc; }, get page() { return page; }, get isDark() { return isDark; },
+  get tool() { return state.tool; }, get selectedCount() { return selected.size; },
+  get canUndo() { return history.length > 0; }, get canRedo() { return future.length > 0; },
+  get hasClip() { return !!localClip; },
+  camera, settings, getImage, viewRect, requestRender, toast, saveSettings, panelContext, pageHasContent,
+  setTool, undo, redo, runCommand, fitView, zoomBy, zoomTo100, zoomToSelection, setZen,
+  goToPage, addPage, renamePage, duplicatePage, deletePage,
+  renderPagesPanel, paintCurrentThumb, openPopover, closePopovers, openTemplateMenu,
+  selectAll, deleteSelection, duplicateSelection, reorderSelection, lockSelection, unlockAll,
+  alignSelection, distributeSelection, copySelection,
+  pasteLocal: () => pasteClip(localClip),
+  promptInstall,
+  setTheme(t) { settings.theme = t; saveSettings(); applyTheme(); syncThemeSeg(); },
+  setToolStyle(tool, patch) { Object.assign(settings.styles[styleKey(tool)], patch); saveSettings(); updateStylePanel(); requestRender(); },
+  selectAt(sx, sy) {
+    const hit = hitTest(screenToWorld(sx, sy), true);
+    if (!hit) return false;
+    if (!selected.has(hit.id)) { setTool('select'); selected.clear(); selected.add(hit.id); updateStylePanel(); requestRender(); }
+    return true;
+  },
+  addTextAt(type, sx, sy) { setTool(type); openEditor(createTextItem(type, screenToWorld(sx, sy), null), true); },
+  centerOn(x, y) { camera.panX = innerWidth / 2 - x * camera.zoom; camera.panY = innerHeight / 2 - y * camera.zoom; requestRender(); },
+};
+
+export const ready = init();

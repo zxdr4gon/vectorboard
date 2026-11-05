@@ -4,15 +4,16 @@
      and export keep working offline.
    Bump VERSION whenever shell files change. */
 
-const VERSION = 'vp-2026-11-04b';
+const VERSION = 'vp-2026-11-04c';
 const SHELL = `${VERSION}-shell`;
 const RUNTIME = 'vp-runtime-v1';
 
 const SHELL_FILES = [
-  './', './index.html', './guide.html', './css/app.css',
-  './js/app.js', './js/geometry.js', './js/render.js', './js/store.js',
-  './manifest.webmanifest', './icons/favicon.svg', './icons/icon-192.png', './icons/icon-512.png',
+  './', './index.html', './studio.html', './guide.html', './css/app.css', './css/studio.css',
+  './js/app.js', './js/studio.js', './js/geometry.js', './js/render.js', './js/store.js',
+  './manifest.webmanifest', './studio.webmanifest', './icons/favicon.svg', './icons/icon-192.png', './icons/icon-512.png',
   './icons/maskable-512.png', './icons/apple-touch-icon.png',
+  './icons/studio-favicon.svg', './icons/studio-192.png', './icons/studio-512.png', './icons/studio-maskable-512.png', './icons/studio-apple-touch.png',
 ];
 const LIBS = [
   'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',

@@ -1,0 +1,27 @@
+{
+  "name": "Vector Plane Studio",
+  "short_name": "VP Studio",
+  "description": "The Vector Plane whiteboard in a full workspace: pages sidebar, inspector, command search and quick pens. Works offline.",
+  "id": "./studio.html",
+  "start_url": "./studio.html?source=pwa",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#1F1C17",
+  "theme_color": "#1F1C17",
+  "categories": ["productivity", "education", "graphics"],
+  "launch_handler": { "client_mode": "focus-existing" },
+  "icons": [
+    { "src": "icons/studio-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/studio-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/studio-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "icons/studio-favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ],
+  "shortcuts": [
+    { "name": "New paper page", "short_name": "New page", "url": "./studio.html?action=new-page", "icons": [{ "src": "icons/studio-192.png", "sizes": "192x192" }] },
+    { "name": "New canvas", "short_name": "New canvas", "url": "./studio.html?action=new-canvas", "icons": [{ "src": "icons/studio-192.png", "sizes": "192x192" }] }
+  ],
+  "file_handlers": [
+    { "action": "./studio.html", "accept": { "application/json": [".json"], "application/pdf": [".pdf"], "image/*": [".png", ".jpg", ".jpeg", ".webp", ".gif"] } }
+  ]
+}
