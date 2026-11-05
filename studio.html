@@ -5,8 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
 <title>Vector Plane Studio</title>
 <meta name="description" content="Vector Plane Studio: the same infinite whiteboard and notebook in a full workspace, with a pages sidebar, inspector, command search and quick pens.">
-<meta name="theme-color" content="#FAF7F0" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#1F1C17" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#0B2C24">
 <meta name="color-scheme" content="light dark">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -18,9 +17,31 @@
 <link rel="apple-touch-icon" href="icons/studio-apple-touch.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<!-- Space Grotesk stays loaded because text on the board is measured and drawn in it. -->
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Instrument+Serif:ital@0;1&family=DM+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600&display=swap">
+<!-- Space Grotesk stays loaded because text on the board is measured and drawn in it.
+     The interface font comes from the chosen look, added below. -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="css/studio.css">
+<script>
+/* Paints the saved look before first render, so a theme never flashes the default. */
+(function () {
+  var href = 'https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap';
+  try {
+    var l = JSON.parse(localStorage.getItem('vp-studio-look') || 'null');
+    if (l && l.vars) {
+      var r = document.documentElement;
+      for (var k in l.vars) r.style.setProperty(k, l.vars[k]);
+      r.setAttribute('data-theme', l.dark ? 'dark' : 'light');
+      if (l.glass) r.classList.add('glass');
+      href = l.fontHref;
+    }
+  } catch (e) {}
+  if (href) {
+    var f = document.createElement('link');
+    f.rel = 'stylesheet'; f.id = 'lookFont'; f.href = href;
+    document.head.appendChild(f);
+  }
+})();
+</script>
 </head>
 <body class="studio pages-on insp-on">
 
@@ -95,6 +116,7 @@
     <symbol id="i-di-x" viewBox="0 0 24 24"><path d="M4 4v16M20 4v16"/><rect x="9.5" y="7" width="5" height="10"/></symbol>
     <symbol id="i-di-y" viewBox="0 0 24 24"><path d="M4 4h16M4 20h16"/><rect x="7" y="9.5" width="10" height="5"/></symbol>
     <symbol id="i-swap" viewBox="0 0 24 24"><path d="M4 8h13l-3.5-3.5M20 16H7l3.5 3.5"/></symbol>
+    <symbol id="i-palette" viewBox="0 0 24 24"><path d="M12 3.5a8.5 8.5 0 100 17c1.4 0 2-.9 2-1.8 0-1.3-1-1.6-1-2.7 0-.9.7-1.5 1.7-1.5h2.2c1.8 0 3.1-1.3 3.1-3.2C20 6.900 16.400 3.500 12 3.500z"/><circle cx="7.800" cy="11.500" r="1"/><circle cx="10.500" cy="7.800" r="1"/><circle cx="15" cy="8.200" r="1"/></symbol>
   </defs>
 </svg>
 
@@ -124,6 +146,7 @@
     <button class="search" id="paletteBtn" aria-label="Search actions" aria-keyshortcuts="Control+K">
       <svg class="ic ic-sm" aria-hidden="true"><use href="#i-search"/></svg><span>Search actions</span><kbd>Ctrl K</kbd>
     </button>
+    <button class="btn-icon hd-desk" id="themeBtn" aria-label="Themes and fonts" data-tip="Themes and fonts"><svg class="ic"><use href="#i-palette"/></svg></button>
     <button class="btn-icon" id="undoBtn" aria-label="Undo" data-tip="Undo" data-key="Ctrl Z"><svg class="ic"><use href="#i-undo"/></svg></button>
     <button class="btn-icon" id="redoBtn" aria-label="Redo" data-tip="Redo" data-key="Ctrl ⇧ Z"><svg class="ic"><use href="#i-redo"/></svg></button>
     <span class="sep hd-desk" aria-hidden="true"></span>
@@ -310,14 +333,7 @@
   <button role="menuitem" data-cmd="pages"><svg class="ic ic-sm"><use href="#i-pages"/></svg><span>Pages…</span></button>
   <button role="menuitem" data-cmd="clear"><svg class="ic ic-sm"><use href="#i-trash"/></svg><span>Clear page</span></button>
   <hr>
-  <div class="menu-theme" role="group" aria-label="Theme">
-    <span>Theme</span>
-    <div class="seg seg-icons" role="radiogroup" aria-label="Theme">
-      <button role="radio" data-theme-set="system" aria-label="Match system" aria-checked="true"><svg class="ic ic-sm"><use href="#i-monitor"/></svg></button>
-      <button role="radio" data-theme-set="light" aria-label="Light" aria-checked="false"><svg class="ic ic-sm"><use href="#i-sun"/></svg></button>
-      <button role="radio" data-theme-set="dark" aria-label="Dark" aria-checked="false"><svg class="ic ic-sm"><use href="#i-moon"/></svg></button>
-    </div>
-  </div>
+  <button role="menuitem" data-scmd="themes"><svg class="ic ic-sm"><use href="#i-palette"/></svg><span>Themes and fonts</span></button>
   <button role="menuitem" data-cmd="zen"><svg class="ic ic-sm"><use href="#i-focus"/></svg><span>Focus mode</span><kbd>\</kbd></button>
   <button role="menuitem" data-cmd="settings"><svg class="ic ic-sm"><use href="#i-settings"/></svg><span>Settings</span></button>
   <button role="menuitem" data-cmd="shortcuts"><svg class="ic ic-sm"><use href="#i-keyboard"/></svg><span>Keyboard shortcuts</span><kbd>?</kbd></button>
@@ -335,6 +351,16 @@
 
 <div class="menu" id="mbMenu" role="menu" hidden></div>
 <div class="menu" id="ctxMenu" role="menu" aria-label="Canvas actions" hidden></div>
+
+<!-- ============ Themes and fonts ============ -->
+<dialog class="dlg dlg-wide dlg-theme" id="themeDialog" aria-labelledby="themeTitle">
+  <form method="dialog" class="dlg-body">
+    <header class="dlg-head"><h2 id="themeTitle">Themes and fonts</h2><button class="btn-icon btn-icon-sm" value="cancel" aria-label="Close"><svg class="ic ic-sm"><use href="#i-x"/></svg></button></header>
+    <p class="look-note">Changes apply straight away. Exports stay the same in every theme.</p>
+    <div id="lookBody"></div>
+    <footer class="dlg-foot"><button class="btn btn-primary" value="ok">Done</button></footer>
+  </form>
+</dialog>
 
 <!-- ============ Command search ============ -->
 <dialog class="palette" id="palette" aria-label="Search actions">

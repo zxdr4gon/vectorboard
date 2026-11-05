@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 const out = join(dirname(fileURLToPath(import.meta.url)), '..', 'icons');
 mkdirSync(out, { recursive: true });
 
-// Classic is teal on graphite; Studio is vermilion on ink, so the two read apart on a home screen.
+// Classic is teal on graphite; Studio is emerald on deep green, so the two read apart on a home screen.
 let BG = [22, 23, 27], GRID = [44, 47, 54], TEAL = [53, 224, 198], WHITE = [236, 237, 239];
 
 // The mark, in a 0..1 unit square: a faint grid, a smooth vector curve, two anchor nodes.
@@ -99,7 +99,7 @@ const jobs = [
 ];
 for (const [name, size, opts] of jobs) { writeFileSync(join(out, name), png(size, render(size, opts))); console.log('wrote', name); }
 
-BG = [29, 26, 21]; GRID = [56, 50, 41]; TEAL = [240, 89, 58]; WHITE = [243, 239, 230];
+BG = [6, 29, 23]; GRID = [18, 58, 47]; TEAL = [52, 229, 168]; WHITE = [228, 246, 238];
 const studioJobs = [
   ['studio-192.png', 192, { rounded: true, inset: 0.86 }],
   ['studio-512.png', 512, { rounded: true, inset: 0.86 }],

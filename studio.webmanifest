@@ -7,8 +7,8 @@
   "scope": "./",
   "display": "standalone",
   "orientation": "any",
-  "background_color": "#1F1C17",
-  "theme_color": "#1F1C17",
+  "background_color": "#0B2C24",
+  "theme_color": "#0B2C24",
   "categories": ["productivity", "education", "graphics"],
   "launch_handler": { "client_mode": "focus-existing" },
   "icons": [
