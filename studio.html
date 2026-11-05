@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<title>Vector Plane Studio</title>
+<meta name="description" content="Vector Plane Studio: the same infinite whiteboard and notebook in a full workspace, with a pages sidebar, inspector, command search and quick pens.">
+<meta name="theme-color" content="#FAF7F0" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1F1C17" media="(prefers-color-scheme: dark)">
+<meta name="color-scheme" content="light dark">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="VP Studio">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="studio.webmanifest">
+<link rel="icon" href="icons/studio-favicon.svg" type="image/svg+xml">
+<link rel="icon" href="icons/studio-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="icons/studio-apple-touch.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- Space Grotesk stays loaded because text on the board is measured and drawn in it. -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Instrument+Serif:ital@0;1&family=DM+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="css/studio.css">
+</head>
+<body class="studio pages-on insp-on">
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+    <symbol id="i-select" viewBox="0 0 24 24"><path d="M5 3.5l5.8 16 2.3-6.6 6.6-2.3z"/></symbol>
+    <symbol id="i-hand" viewBox="0 0 24 24"><path d="M8 13V5.5a1.5 1.5 0 013 0V12"/><path d="M11 11.5V4.5a1.5 1.5 0 013 0V12"/><path d="M14 11.5v-5a1.5 1.5 0 013 0V15a6 6 0 01-6 6h-.6a6 6 0 01-4.8-2.4l-2.3-3.3a1.5 1.5 0 012.3-1.9L8 15.2"/></symbol>
+    <symbol id="i-pen" viewBox="0 0 24 24"><path d="M4 20l1.2-4.6L15.6 5a2.1 2.1 0 013 3L8.2 18.4z"/><path d="M13.5 7l3.5 3.5"/></symbol>
+    <symbol id="i-highlighter" viewBox="0 0 24 24"><path d="M14.5 4.5l5 5-8 8H6.5v-5z"/><path d="M6.5 17.5L4 20h5"/><path d="M11.5 7.5l5 5"/></symbol>
+    <symbol id="i-eraser" viewBox="0 0 24 24"><path d="M8 20h12"/><path d="M5.6 14.6l8.5-8.5a2 2 0 012.8 0l2.9 2.9a2 2 0 010 2.8L13 18.6a2 2 0 01-1.4.6H9.4a2 2 0 01-1.4-.6l-2.4-2.4a2 2 0 010-2.8z"/><path d="M9.5 10.5l5.5 5.5"/></symbol>
+    <symbol id="i-eraser-cut" viewBox="0 0 24 24"><path d="M3 12h4.5M16.5 12H21"/><rect x="8.5" y="7.5" width="7" height="9" rx="2"/></symbol>
+    <symbol id="i-laser" viewBox="0 0 24 24"><circle cx="12" cy="12" r="2.5"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></symbol>
+    <symbol id="i-shapes" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7.5" height="7.5" rx="1.5"/><circle cx="17" cy="7.25" r="3.75"/><path d="M7.25 13.5l4 7h-8z"/><path d="M17 13.5l3.5 3.5-3.5 3.5-3.5-3.5z"/></symbol>
+    <symbol id="i-rect" viewBox="0 0 24 24"><rect x="4" y="6" width="16" height="12" rx="1.5"/></symbol>
+    <symbol id="i-ellipse" viewBox="0 0 24 24"><ellipse cx="12" cy="12" rx="8.5" ry="6.5"/></symbol>
+    <symbol id="i-triangle" viewBox="0 0 24 24"><path d="M12 4.5l8.5 15h-17z"/></symbol>
+    <symbol id="i-diamond" viewBox="0 0 24 24"><path d="M12 3.5l8.5 8.5-8.5 8.5L3.5 12z"/></symbol>
+    <symbol id="i-line" viewBox="0 0 24 24"><path d="M5 19L19 5"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 19L19 5"/><path d="M10 5h9v9"/></symbol>
+    <symbol id="i-text" viewBox="0 0 24 24"><path d="M5 7V5h14v2"/><path d="M12 5v14"/><path d="M9.5 19h5"/></symbol>
+    <symbol id="i-node" viewBox="0 0 24 24"><rect x="3" y="7.5" width="18" height="9" rx="4.5"/><path d="M8 12h8"/></symbol>
+    <symbol id="i-sticky" viewBox="0 0 24 24"><path d="M5 4h14a1 1 0 011 1v9l-6 6H5a1 1 0 01-1-1V5a1 1 0 011-1z"/><path d="M14 20v-5a1 1 0 011-1h5"/></symbol>
+    <symbol id="i-connector" viewBox="0 0 24 24"><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="6" r="2.5"/><path d="M8 16l8-8"/></symbol>
+    <symbol id="i-image" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="2.5"/><circle cx="9" cy="9" r="1.75"/><path d="M20.5 15l-5-5L5 20.5"/></symbol>
+    <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 010 11H11"/></symbol>
+    <symbol id="i-redo" viewBox="0 0 24 24"><path d="M15 14l5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 000 11H13"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+    <symbol id="i-fit" viewBox="0 0 24 24"><path d="M4 9V5.5A1.5 1.5 0 015.5 4H9M15 4h3.5A1.5 1.5 0 0120 5.5V9M20 15v3.5a1.5 1.5 0 01-1.5 1.5H15M9 20H5.5A1.5 1.5 0 014 18.5V15"/></symbol>
+    <symbol id="i-chev-left" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></symbol>
+    <symbol id="i-chev-right" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></symbol>
+    <symbol id="i-chev-down" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
+    <symbol id="i-more" viewBox="0 0 24 24"><path d="M5 12h.01M12 12h.01M19 12h.01" stroke-width="3"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M4.6 4.6L6 6M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4L6 18M18 6l1.4-1.4"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 019.5 4a8 8 0 1010.5 10.5z"/></symbol>
+    <symbol id="i-monitor" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5"/><path d="M4 16v2.5A1.5 1.5 0 005.5 20h13a1.5 1.5 0 001.5-1.5V16"/></symbol>
+    <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3.5 7A1.5 1.5 0 015 5.5h4l2 2h8a1.5 1.5 0 011.5 1.5v8.5A1.5 1.5 0 0119 19H5a1.5 1.5 0 01-1.5-1.5z"/></symbol>
+    <symbol id="i-save" viewBox="0 0 24 24"><path d="M5 4h11l4 4v11a1 1 0 01-1 1H5a1 1 0 01-1-1V5a1 1 0 011-1z"/><path d="M8 4v4.5h7V4"/><path d="M7.5 20v-6.5h9V20"/></symbol>
+    <symbol id="i-file-plus" viewBox="0 0 24 24"><path d="M14 3.5H6.5A1.5 1.5 0 005 5v14a1.5 1.5 0 001.5 1.5h11A1.5 1.5 0 0019 19V8.5z"/><path d="M14 3.5v5h5M12 11.5v6M9 14.5h6"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6"/><path d="M6 7l1 12a2 2 0 002 2h6a2 2 0 002-2l1-12"/><path d="M9 7V4.5h6V7"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8.5" y="8.5" width="12" height="12" rx="2"/><path d="M15.5 8.5V5A1.5 1.5 0 0014 3.5H5A1.5 1.5 0 003.5 5v9A1.5 1.5 0 005 15.5h3.5"/></symbol>
+    <symbol id="i-front" viewBox="0 0 24 24"><path d="M5 4h14M12 20V8M7 13l5-5 5 5"/></symbol>
+    <symbol id="i-back" viewBox="0 0 24 24"><path d="M5 20h14M12 4v12M7 11l5 5 5-5"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9.5" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/></symbol>
+    <symbol id="i-unlock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9.5" rx="2"/><path d="M8 11V8a4 4 0 017.7-1.5"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></symbol>
+    <symbol id="i-keyboard" viewBox="0 0 24 24"><rect x="2.5" y="6" width="19" height="12" rx="2"/><path d="M6.5 10h.01M10 10h.01M14 10h.01M17.5 10h.01M8 14h8"/></symbol>
+    <symbol id="i-install" viewBox="0 0 24 24"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M12 7v7M9 11l3 3 3-3"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+    <symbol id="i-paper" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8.5 8h7M8.5 12h7M8.5 16h4"/></symbol>
+    <symbol id="i-focus" viewBox="0 0 24 24"><path d="M3 8.5V5a2 2 0 012-2h3.5M21 8.5V5a2 2 0 00-2-2h-3.5M3 15.5V19a2 2 0 002 2h3.5M21 15.5V19a2 2 0 01-2 2h-3.5"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 5.5A1.5 1.5 0 015.5 4H10a2 2 0 012 2v14a2 2 0 00-2-2H4z"/><path d="M20 5.5A1.5 1.5 0 0018.5 4H14a2 2 0 00-2 2v14a2 2 0 012-2h6z"/></symbol>
+    <symbol id="i-pages" viewBox="0 0 24 24"><rect x="7" y="3" width="13" height="16" rx="2"/><path d="M4 7v12a2 2 0 002 2h10"/></symbol>
+    <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></symbol>
+    <symbol id="i-infinite" viewBox="0 0 24 24"><path d="M6.5 15.5C4.5 15.5 3 13.9 3 12s1.5-3.5 3.5-3.5c3.5 0 7.5 7 11 7 2 0 3.5-1.6 3.5-3.5s-1.5-3.5-3.5-3.5c-3.5 0-7.5 7-11 7z"/></symbol>
+    <symbol id="i-portrait" viewBox="0 0 24 24"><rect x="6" y="3" width="12" height="18" rx="1.5"/></symbol>
+    <symbol id="i-landscape" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="1.5"/></symbol>
+    <symbol id="i-cut" viewBox="0 0 24 24"><circle cx="6" cy="17" r="3"/><circle cx="18" cy="17" r="3"/><path d="M8.2 15L18 4M15.8 15L6 4"/></symbol>
+    <symbol id="i-clipboard" viewBox="0 0 24 24"><rect x="5" y="4.5" width="14" height="16.5" rx="2"/><path d="M9 4.5V3.5h6v1"/><path d="M9 11h6M9 15h4"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></symbol>
+    <symbol id="i-side-l" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="1.5"/><path d="M9.5 4.5v15"/></symbol>
+    <symbol id="i-side-r" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="1.5"/><path d="M14.5 4.5v15"/></symbol>
+    <symbol id="i-al-l" viewBox="0 0 24 24"><path d="M4 3.5v17"/><rect x="7.5" y="6" width="12" height="4.5"/><rect x="7.5" y="13.5" width="7.5" height="4.5"/></symbol>
+    <symbol id="i-al-hc" viewBox="0 0 24 24"><path d="M12 3.5v17"/><rect x="5.5" y="6" width="13" height="4.5"/><rect x="8" y="13.5" width="8" height="4.5"/></symbol>
+    <symbol id="i-al-r" viewBox="0 0 24 24"><path d="M20 3.5v17"/><rect x="4.5" y="6" width="12" height="4.5"/><rect x="9" y="13.5" width="7.5" height="4.5"/></symbol>
+    <symbol id="i-al-t" viewBox="0 0 24 24"><path d="M3.5 4h17"/><rect x="6" y="7.5" width="4.5" height="12"/><rect x="13.5" y="7.5" width="4.5" height="7.5"/></symbol>
+    <symbol id="i-al-vc" viewBox="0 0 24 24"><path d="M3.5 12h17"/><rect x="6" y="5.5" width="4.5" height="13"/><rect x="13.5" y="8" width="4.5" height="8"/></symbol>
+    <symbol id="i-al-b" viewBox="0 0 24 24"><path d="M3.5 20h17"/><rect x="6" y="4.5" width="4.5" height="12"/><rect x="13.5" y="9" width="4.5" height="7.5"/></symbol>
+    <symbol id="i-di-x" viewBox="0 0 24 24"><path d="M4 4v16M20 4v16"/><rect x="9.5" y="7" width="5" height="10"/></symbol>
+    <symbol id="i-di-y" viewBox="0 0 24 24"><path d="M4 4h16M4 20h16"/><rect x="7" y="9.5" width="10" height="5"/></symbol>
+    <symbol id="i-swap" viewBox="0 0 24 24"><path d="M4 8h13l-3.5-3.5M20 16H7l3.5 3.5"/></symbol>
+  </defs>
+</svg>
+
+<canvas id="c" aria-label="Drawing canvas" role="img"></canvas>
+
+<!-- ============ Header ============ -->
+<header class="hd" id="topbar">
+  <button class="btn-icon" id="menuBtn" aria-label="Main menu" aria-haspopup="menu" aria-expanded="false"><svg class="ic"><use href="#i-menu"/></svg></button>
+  <img class="mark" src="icons/studio-favicon.svg" alt="" width="24" height="24">
+  <div class="doc-id">
+    <input id="docTitle" class="doc-title" value="Untitled board" aria-label="Board name" spellcheck="false" maxlength="80">
+    <span class="save-state" id="saveState" aria-live="polite">Saved</span>
+  </div>
+  <nav class="menubar" id="menubar" aria-label="Application menu"></nav>
+
+  <div class="hd-pages" role="group" aria-label="Pages">
+    <button class="btn-icon" id="prevPageBtn" aria-label="Previous page" data-tip="Previous page" data-key="PgUp"><svg class="ic ic-sm"><use href="#i-chev-left"/></svg></button>
+    <button class="page-pill" id="pagePill" aria-haspopup="dialog" aria-expanded="false" aria-controls="pagesPanel">
+      <svg class="ic ic-sm" id="pageKindIcon" aria-hidden="true"><use href="#i-infinite"/></svg>
+      <span class="page-name" id="pageName">Canvas</span>
+      <span class="page-count" id="pageCount">1 / 1</span>
+    </button>
+    <button class="btn-icon" id="nextPageBtn" aria-label="Next page" data-tip="Next page" data-key="PgDn"><svg class="ic ic-sm"><use href="#i-chev-right"/></svg></button>
+  </div>
+
+  <div class="hd-right">
+    <button class="search" id="paletteBtn" aria-label="Search actions" aria-keyshortcuts="Control+K">
+      <svg class="ic ic-sm" aria-hidden="true"><use href="#i-search"/></svg><span>Search actions</span><kbd>Ctrl K</kbd>
+    </button>
+    <button class="btn-icon" id="undoBtn" aria-label="Undo" data-tip="Undo" data-key="Ctrl Z"><svg class="ic"><use href="#i-undo"/></svg></button>
+    <button class="btn-icon" id="redoBtn" aria-label="Redo" data-tip="Redo" data-key="Ctrl ⇧ Z"><svg class="ic"><use href="#i-redo"/></svg></button>
+    <span class="sep hd-desk" aria-hidden="true"></span>
+    <button class="btn-icon hd-desk" id="pagesToggle" aria-label="Pages sidebar" aria-pressed="true" data-tip="Pages sidebar" data-key="Ctrl B"><svg class="ic"><use href="#i-side-l"/></svg></button>
+    <button class="btn-icon hd-desk" id="inspToggle" aria-label="Inspector" aria-pressed="true" data-tip="Inspector" data-key="Ctrl I"><svg class="ic"><use href="#i-side-r"/></svg></button>
+    <button class="btn btn-primary hd-desk" id="exportBtn" data-tip="Export" data-key="Ctrl ⇧ E">Export</button>
+  </div>
+</header>
+
+<!-- ============ Pages sidebar (bottom sheet on phones) ============ -->
+<aside class="pages-panel" id="pagesPanel" aria-label="Pages">
+  <div class="pp-head">
+    <h2>Pages</h2>
+    <button class="btn-icon btn-icon-sm" id="pagesClose" aria-label="Hide pages" data-tip="Hide pages"><svg class="ic ic-sm"><use href="#i-x"/></svg></button>
+  </div>
+  <div class="pp-add" role="group" aria-label="Add page">
+    <button class="btn btn-ghost" data-add="infinite" aria-label="New infinite canvas" data-tip="New infinite canvas"><svg class="ic ic-sm" aria-hidden="true"><use href="#i-infinite"/></svg><span>Canvas</span></button>
+    <button class="btn btn-ghost" data-add="portrait" aria-label="New portrait paper page" data-tip="New portrait paper page" data-key="Ctrl ⇧ N"><svg class="ic ic-sm" aria-hidden="true"><use href="#i-portrait"/></svg><span>Paper</span></button>
+    <button class="btn btn-ghost" data-add="landscape" aria-label="New landscape paper page" data-tip="New landscape paper page"><svg class="ic ic-sm" aria-hidden="true"><use href="#i-landscape"/></svg><span>Wide</span></button>
+  </div>
+  <div class="pp-grid" id="pageGrid"></div>
+  <p class="pp-hint" id="ppHint"></p>
+</aside>
+
+<!-- ============ Inspector ============ -->
+<aside class="inspector" id="inspector" aria-label="Inspector">
+  <section class="stylepanel" id="stylePanel" aria-label="Style">
+    <div class="sp-head">
+      <span class="sp-title" id="spTitle">Pen</span>
+      <button class="btn-icon btn-icon-sm" id="styleClose" aria-label="Hide style panel"><svg class="ic ic-sm"><use href="#i-x"/></svg></button>
+    </div>
+    <div class="sp-row sp-pens" data-pens aria-label="Quick pens"></div>
+    <div class="sp-row" id="spColors">
+      <div class="swatches" id="swatches" role="radiogroup" aria-label="Color"></div>
+    </div>
+    <div class="sp-row" id="spSize">
+      <label class="sp-label" for="sizeSlider" id="sizeLabel">Size</label>
+      <div class="size-ctl">
+        <span class="size-preview" aria-hidden="true"><span id="sizePreview"></span></span>
+        <input type="range" id="sizeSlider" min="1" max="60" value="6" step="1">
+        <output class="size-value" id="sizeValue" for="sizeSlider">6</output>
+      </div>
+    </div>
+    <div class="sp-row" id="spFill">
+      <span class="sp-label">Fill</span>
+      <div class="seg" role="radiogroup" aria-label="Fill">
+        <button role="radio" data-fill="none" aria-checked="true">None</button>
+        <button role="radio" data-fill="tint" aria-checked="false">Tint</button>
+        <button role="radio" data-fill="solid" aria-checked="false">Solid</button>
+      </div>
+    </div>
+    <div class="sp-row" id="spDash">
+      <span class="sp-label">Stroke</span>
+      <div class="seg" role="radiogroup" aria-label="Stroke style">
+        <button role="radio" data-dash="0" aria-checked="true">Solid</button>
+        <button role="radio" data-dash="1" aria-checked="false">Dashed</button>
+      </div>
+    </div>
+    <p class="sp-hint" id="spHint"></p>
+  </section>
+
+  <section class="insp-sec" id="arrangeSec" aria-label="Arrange" hidden>
+    <h3 class="sec-title">Arrange</h3>
+    <div class="align-grid" role="group" aria-label="Align and distribute">
+      <button class="btn-icon" data-align="left" aria-label="Align left" data-tip="Align left"><svg class="ic"><use href="#i-al-l"/></svg></button>
+      <button class="btn-icon" data-align="hcenter" aria-label="Align centers" data-tip="Align centers"><svg class="ic"><use href="#i-al-hc"/></svg></button>
+      <button class="btn-icon" data-align="right" aria-label="Align right" data-tip="Align right"><svg class="ic"><use href="#i-al-r"/></svg></button>
+      <button class="btn-icon" data-align="top" aria-label="Align top" data-tip="Align top"><svg class="ic"><use href="#i-al-t"/></svg></button>
+      <button class="btn-icon" data-align="vcenter" aria-label="Align middles" data-tip="Align middles"><svg class="ic"><use href="#i-al-vc"/></svg></button>
+      <button class="btn-icon" data-align="bottom" aria-label="Align bottom" data-tip="Align bottom"><svg class="ic"><use href="#i-al-b"/></svg></button>
+      <button class="btn-icon" data-dist="x" aria-label="Space evenly across" data-tip="Space evenly across"><svg class="ic"><use href="#i-di-x"/></svg></button>
+      <button class="btn-icon" data-dist="y" aria-label="Space evenly down" data-tip="Space evenly down"><svg class="ic"><use href="#i-di-y"/></svg></button>
+    </div>
+  </section>
+
+  <section class="insp-sec" id="pageSec" aria-label="Page">
+    <h3 class="sec-title">Page</h3>
+    <dl class="facts">
+      <div><dt>Type</dt><dd id="factKind">Infinite canvas</dd></div>
+      <div><dt>Items</dt><dd id="factItems">0</dd></div>
+    </dl>
+    <button class="row-btn" id="templateBtn" aria-haspopup="menu" aria-expanded="false">
+      <span class="row-k">Paper</span><span class="row-v" id="factTemplate">Grid</span><svg class="ic ic-sm" aria-hidden="true"><use href="#i-chev-down"/></svg>
+    </button>
+  </section>
+
+  <section class="insp-sec insp-nav" id="navSec" aria-label="Navigator">
+    <h3 class="sec-title">Navigator</h3>
+    <canvas id="minimap" width="220" height="140" tabindex="0" role="img" aria-label="Overview of this page. Drag to move around."></canvas>
+  </section>
+</aside>
+
+<!-- ============ Dock ============ -->
+<nav class="dock" id="rail" aria-label="Tools" data-tip-side="top">
+  <button class="style-chip" id="styleBtn" aria-label="Color and size" aria-expanded="false" aria-controls="stylePanel"><span class="style-dot" id="styleDot"></span></button>
+  <button class="tool" data-tool="select" aria-label="Select" data-tip="Select" data-key="V"><svg class="ic"><use href="#i-select"/></svg></button>
+  <button class="tool dock-desk" data-tool="hand" aria-label="Hand" data-tip="Pan" data-key="H"><svg class="ic"><use href="#i-hand"/></svg></button>
+  <span class="dock-sep dock-desk" aria-hidden="true"></span>
+  <div class="pens dock-desk" data-pens role="group" aria-label="Quick pens"></div>
+  <span class="dock-sep dock-desk" aria-hidden="true"></span>
+  <button class="tool grp" id="grpDraw" data-group="draw" aria-label="Drawing tools" aria-haspopup="menu" aria-expanded="false" data-tip="Draw" data-key="P M L"><svg class="ic"><use href="#i-pen"/></svg><span class="tool-caret" aria-hidden="true"></span></button>
+  <button class="tool grp" id="grpErase" data-group="erase" aria-label="Erasers" aria-haspopup="menu" aria-expanded="false" data-tip="Erase" data-key="E X"><svg class="ic"><use href="#i-eraser"/></svg><span class="tool-caret" aria-hidden="true"></span></button>
+  <button class="tool grp" id="shapesBtn" data-group="shapes" aria-label="Shapes" aria-haspopup="menu" aria-expanded="false" data-tip="Shapes" data-key="R O D A"><svg class="ic" id="shapesIcon"><use href="#i-rect"/></svg><span class="tool-caret" aria-hidden="true"></span></button>
+  <button class="tool grp" id="grpText" data-group="text" aria-label="Text and connectors" aria-haspopup="menu" aria-expanded="false" data-tip="Text and links" data-key="T N S C"><svg class="ic"><use href="#i-text"/></svg><span class="tool-caret" aria-hidden="true"></span></button>
+  <span class="dock-sep dock-desk" aria-hidden="true"></span>
+  <button class="tool dock-desk" id="importBtn" aria-label="Import PDF or image" data-tip="Import PDF or image" data-key="I"><svg class="ic"><use href="#i-image"/></svg></button>
+</nav>
+
+<div class="flyout" id="flyDraw" role="menu" aria-label="Drawing tools" hidden>
+  <button class="tool" data-tool="pen" role="menuitemradio"><svg class="ic"><use href="#i-pen"/></svg><span>Pen</span><kbd>P</kbd></button>
+  <button class="tool" data-tool="highlighter" role="menuitemradio"><svg class="ic"><use href="#i-highlighter"/></svg><span>Highlighter</span><kbd>M</kbd></button>
+  <button class="tool" data-tool="laser" role="menuitemradio"><svg class="ic"><use href="#i-laser"/></svg><span>Laser pointer</span><kbd>L</kbd></button>
+</div>
+<div class="flyout" id="flyErase" role="menu" aria-label="Erasers" hidden>
+  <button class="tool" data-tool="eraser-stroke" role="menuitemradio"><svg class="ic"><use href="#i-eraser"/></svg><span>Stroke eraser</span><kbd>E</kbd></button>
+  <button class="tool" data-tool="eraser-precision" role="menuitemradio"><svg class="ic"><use href="#i-eraser-cut"/></svg><span>Precision eraser</span><kbd>X</kbd></button>
+</div>
+<div class="flyout" id="shapesMenu" role="menu" aria-label="Shapes" hidden>
+  <button class="tool" data-tool="rect" role="menuitemradio"><svg class="ic"><use href="#i-rect"/></svg><span>Rectangle</span><kbd>R</kbd></button>
+  <button class="tool" data-tool="ellipse" role="menuitemradio"><svg class="ic"><use href="#i-ellipse"/></svg><span>Ellipse</span><kbd>O</kbd></button>
+  <button class="tool" data-tool="triangle" role="menuitemradio"><svg class="ic"><use href="#i-triangle"/></svg><span>Triangle</span><kbd>⇧T</kbd></button>
+  <button class="tool" data-tool="diamond" role="menuitemradio"><svg class="ic"><use href="#i-diamond"/></svg><span>Diamond</span><kbd>D</kbd></button>
+  <button class="tool" data-tool="line" role="menuitemradio"><svg class="ic"><use href="#i-line"/></svg><span>Line</span><kbd>⇧L</kbd></button>
+  <button class="tool" data-tool="arrow" role="menuitemradio"><svg class="ic"><use href="#i-arrow"/></svg><span>Arrow</span><kbd>A</kbd></button>
+</div>
+<div class="flyout" id="flyText" role="menu" aria-label="Text and connectors" hidden>
+  <button class="tool" data-tool="text" role="menuitemradio"><svg class="ic"><use href="#i-text"/></svg><span>Text</span><kbd>T</kbd></button>
+  <button class="tool" data-tool="node" role="menuitemradio"><svg class="ic"><use href="#i-node"/></svg><span>Text box</span><kbd>N</kbd></button>
+  <button class="tool" data-tool="sticky" role="menuitemradio"><svg class="ic"><use href="#i-sticky"/></svg><span>Sticky note</span><kbd>S</kbd></button>
+  <button class="tool" data-tool="connector" role="menuitemradio"><svg class="ic"><use href="#i-connector"/></svg><span>Connector</span><kbd>C</kbd></button>
+</div>
+
+<!-- ============ Selection bar ============ -->
+<div class="selbar" id="selBar" role="toolbar" aria-label="Selection" hidden>
+  <button class="btn-icon" data-act="edit" aria-label="Edit text" data-tip="Edit text" data-key="Enter"><svg class="ic"><use href="#i-edit"/></svg></button>
+  <button class="btn-icon" data-act="duplicate" aria-label="Duplicate" data-tip="Duplicate" data-key="Ctrl D"><svg class="ic"><use href="#i-copy"/></svg></button>
+  <button class="btn-icon" data-act="front" aria-label="Bring to front" data-tip="Bring to front" data-key="]"><svg class="ic"><use href="#i-front"/></svg></button>
+  <button class="btn-icon" data-act="back" aria-label="Send to back" data-tip="Send to back" data-key="["><svg class="ic"><use href="#i-back"/></svg></button>
+  <button class="btn-icon" data-act="lock" aria-label="Lock" data-tip="Lock in place"><svg class="ic"><use href="#i-lock"/></svg></button>
+  <span class="sep" aria-hidden="true"></span>
+  <button class="btn-icon danger" data-act="delete" aria-label="Delete" data-tip="Delete" data-key="Del"><svg class="ic"><use href="#i-trash"/></svg></button>
+</div>
+
+<!-- ============ Status bar ============ -->
+<footer class="status" id="statusbar">
+  <div class="readout" id="readout"><span id="coordReadout">X 0 · Y 0</span></div>
+  <span class="status-hint" id="statusHint"></span>
+  <div class="zoombar" id="zoombar" role="group" aria-label="Zoom" data-tip-side="top">
+    <button class="btn-icon" id="zoomOutBtn" aria-label="Zoom out" data-tip="Zoom out" data-key="−"><svg class="ic ic-sm"><use href="#i-minus"/></svg></button>
+    <button class="zoom-val" id="zoomVal" aria-label="Zoom level, reset to 100%" data-tip="Reset to 100%" data-key="Shift 0">100%</button>
+    <button class="btn-icon" id="zoomInBtn" aria-label="Zoom in" data-tip="Zoom in" data-key="+"><svg class="ic ic-sm"><use href="#i-plus"/></svg></button>
+    <button class="btn-icon" id="fitBtn" aria-label="Fit to screen" data-tip="Fit to screen" data-key="0"><svg class="ic ic-sm"><use href="#i-fit"/></svg></button>
+  </div>
+</footer>
+
+<button class="back-pill" id="backPill" hidden><svg class="ic ic-sm" aria-hidden="true"><use href="#i-fit"/></svg>Back to your work</button>
+<button class="zen-exit" id="zenExit" hidden><svg class="ic ic-sm" aria-hidden="true"><use href="#i-focus"/></svg>Show tools</button>
+
+<!-- ============ Empty-board welcome ============ -->
+<div class="welcome" id="welcome" hidden>
+  <p class="welcome-title">Start anywhere.</p>
+  <p class="welcome-sub">Draw straight onto the board, or pick a way in. Everything saves itself.</p>
+  <div class="welcome-acts">
+    <button data-w="pen"><svg class="ic" aria-hidden="true"><use href="#i-pen"/></svg>Sketch</button>
+    <button data-w="sticky"><svg class="ic" aria-hidden="true"><use href="#i-sticky"/></svg>Sticky note</button>
+    <button data-w="paper"><svg class="ic" aria-hidden="true"><use href="#i-portrait"/></svg>Paper page</button>
+    <button data-w="import"><svg class="ic" aria-hidden="true"><use href="#i-image"/></svg>Open a PDF</button>
+  </div>
+</div>
+
+<!-- ============ Main menu ============ -->
+<div class="menu" id="mainMenu" role="menu" aria-label="Main menu" hidden>
+  <button role="menuitem" data-scmd="search"><svg class="ic ic-sm"><use href="#i-search"/></svg><span>Search actions</span></button>
+  <hr>
+  <button role="menuitem" data-cmd="new"><svg class="ic ic-sm"><use href="#i-file-plus"/></svg><span>New board</span></button>
+  <button role="menuitem" data-cmd="open"><svg class="ic ic-sm"><use href="#i-folder"/></svg><span>Open file…</span><kbd>Ctrl O</kbd></button>
+  <button role="menuitem" data-cmd="save"><svg class="ic ic-sm"><use href="#i-save"/></svg><span>Save to file</span><kbd>Ctrl S</kbd></button>
+  <button role="menuitem" data-cmd="saveas"><svg class="ic ic-sm"><use href="#i-save"/></svg><span>Save as…</span><kbd>Ctrl ⇧ S</kbd></button>
+  <hr>
+  <button role="menuitem" data-cmd="import"><svg class="ic ic-sm"><use href="#i-image"/></svg><span>Import PDF or image…</span><kbd>I</kbd></button>
+  <button role="menuitem" data-cmd="export"><svg class="ic ic-sm"><use href="#i-download"/></svg><span>Export…</span><kbd>Ctrl ⇧ E</kbd></button>
+  <hr>
+  <button role="menuitem" data-cmd="template"><svg class="ic ic-sm"><use href="#i-paper"/></svg><span>Paper template…</span></button>
+  <button role="menuitem" data-cmd="pages"><svg class="ic ic-sm"><use href="#i-pages"/></svg><span>Pages…</span></button>
+  <button role="menuitem" data-cmd="clear"><svg class="ic ic-sm"><use href="#i-trash"/></svg><span>Clear page</span></button>
+  <hr>
+  <div class="menu-theme" role="group" aria-label="Theme">
+    <span>Theme</span>
+    <div class="seg seg-icons" role="radiogroup" aria-label="Theme">
+      <button role="radio" data-theme-set="system" aria-label="Match system" aria-checked="true"><svg class="ic ic-sm"><use href="#i-monitor"/></svg></button>
+      <button role="radio" data-theme-set="light" aria-label="Light" aria-checked="false"><svg class="ic ic-sm"><use href="#i-sun"/></svg></button>
+      <button role="radio" data-theme-set="dark" aria-label="Dark" aria-checked="false"><svg class="ic ic-sm"><use href="#i-moon"/></svg></button>
+    </div>
+  </div>
+  <button role="menuitem" data-cmd="zen"><svg class="ic ic-sm"><use href="#i-focus"/></svg><span>Focus mode</span><kbd>\</kbd></button>
+  <button role="menuitem" data-cmd="settings"><svg class="ic ic-sm"><use href="#i-settings"/></svg><span>Settings</span></button>
+  <button role="menuitem" data-cmd="shortcuts"><svg class="ic ic-sm"><use href="#i-keyboard"/></svg><span>Keyboard shortcuts</span><kbd>?</kbd></button>
+  <hr>
+  <button role="menuitem" data-cmd="install" id="installItem" hidden><svg class="ic ic-sm"><use href="#i-install"/></svg><span>Install app</span></button>
+  <a role="menuitem" href="guide.html"><svg class="ic ic-sm"><use href="#i-book"/></svg><span>Feature guide</span></a>
+  <a role="menuitem" href="./"><svg class="ic ic-sm"><use href="#i-swap"/></svg><span>Switch to Classic version</span></a>
+</div>
+
+<!-- ============ Paper template popover ============ -->
+<div class="menu template-menu" id="templateMenu" role="menu" aria-label="Paper template" hidden>
+  <div class="menu-title">Paper template <span class="muted" id="templateScope">this page</span></div>
+  <div class="tpl-grid" id="tplGrid"></div>
+</div>
+
+<div class="menu" id="mbMenu" role="menu" hidden></div>
+<div class="menu" id="ctxMenu" role="menu" aria-label="Canvas actions" hidden></div>
+
+<!-- ============ Command search ============ -->
+<dialog class="palette" id="palette" aria-label="Search actions">
+  <div class="pal-field">
+    <svg class="ic" aria-hidden="true"><use href="#i-search"/></svg>
+    <input id="palInput" type="text" role="combobox" aria-expanded="true" aria-controls="palList" aria-autocomplete="list" autocomplete="off" spellcheck="false" placeholder="Tools, pages, actions…" aria-label="Search actions">
+    <kbd>Esc</kbd>
+  </div>
+  <ul class="pal-list" id="palList" role="listbox" aria-label="Results"></ul>
+</dialog>
+
+<div class="menu" id="pageMenu" role="menu" aria-label="Page actions" hidden>
+  <button role="menuitem" data-pcmd="rename"><svg class="ic ic-sm"><use href="#i-edit"/></svg><span>Rename</span></button>
+  <button role="menuitem" data-pcmd="duplicate"><svg class="ic ic-sm"><use href="#i-copy"/></svg><span>Duplicate</span></button>
+  <button role="menuitem" data-pcmd="left"><svg class="ic ic-sm"><use href="#i-chev-left"/></svg><span>Move earlier</span></button>
+  <button role="menuitem" data-pcmd="right"><svg class="ic ic-sm"><use href="#i-chev-right"/></svg><span>Move later</span></button>
+  <button role="menuitem" data-pcmd="template"><svg class="ic ic-sm"><use href="#i-paper"/></svg><span>Paper template…</span></button>
+  <button role="menuitem" data-pcmd="unlock"><svg class="ic ic-sm"><use href="#i-unlock"/></svg><span>Unlock all items</span></button>
+  <hr>
+  <button role="menuitem" class="danger" data-pcmd="delete"><svg class="ic ic-sm"><use href="#i-trash"/></svg><span>Delete page</span></button>
+</div>
+
+<!-- ============ Dialogs ============ -->
+<dialog class="dlg" id="exportDialog" aria-labelledby="exportTitle">
+  <form method="dialog" class="dlg-body" id="exportForm">
+    <header class="dlg-head"><h2 id="exportTitle">Export</h2><button class="btn-icon btn-icon-sm" value="cancel" aria-label="Close"><svg class="ic ic-sm"><use href="#i-x"/></svg></button></header>
+    <fieldset class="field">
+      <legend>Format</legend>
+      <div class="seg seg-wide" role="radiogroup">
+        <label><input type="radio" name="fmt" value="png" checked><span>PNG</span></label>
+        <label><input type="radio" name="fmt" value="svg"><span>SVG</span></label>
+        <label><input type="radio" name="fmt" value="pdf"><span>PDF</span></label>
+      </div>
+    </fieldset>
+    <fieldset class="field">
+      <legend>What to export</legend>
+      <div class="radio-list">
+        <label id="scopeSelectionRow"><input type="radio" name="scope" value="selection"><span>Selection</span></label>
+        <label><input type="radio" name="scope" value="current" checked><span>This page</span></label>
+        <label><input type="radio" name="scope" value="written"><span>Pages with content</span></label>
+        <label><input type="radio" name="scope" value="all"><span>All pages</span></label>
+        <label class="range-row"><input type="radio" name="scope" value="range"><span>Pages</span><input type="text" id="rangeInput" inputmode="numeric" placeholder="e.g. 1-3, 5" aria-label="Page range"></label>
+      </div>
+    </fieldset>
+    <fieldset class="field" id="scaleField">
+      <legend>Resolution</legend>
+      <div class="seg seg-wide" role="radiogroup">
+        <label><input type="radio" name="scale" value="1"><span>1×</span></label>
+        <label><input type="radio" name="scale" value="2" checked><span>2×</span></label>
+        <label><input type="radio" name="scale" value="3"><span>3×</span></label>
+      </div>
+    </fieldset>
+    <fieldset class="field">
+      <legend>Options</legend>
+      <label class="check"><input type="checkbox" id="optTemplate" checked><span>Include paper template</span></label>
+      <label class="check" id="optTransparentRow"><input type="checkbox" id="optTransparent"><span>Transparent background</span></label>
+    </fieldset>
+    <p class="dlg-note" id="exportNote"></p>
+    <footer class="dlg-foot">
+      <button type="button" class="btn btn-ghost" id="copyPngBtn"><svg class="ic ic-sm" aria-hidden="true"><use href="#i-clipboard"/></svg>Copy image</button>
+      <button type="submit" class="btn btn-primary" value="export" id="doExportBtn"><svg class="ic ic-sm" aria-hidden="true"><use href="#i-download"/></svg>Export</button>
+    </footer>
+  </form>
+</dialog>
+
+<dialog class="dlg" id="settingsDialog" aria-labelledby="settingsTitle">
+  <form method="dialog" class="dlg-body">
+    <header class="dlg-head"><h2 id="settingsTitle">Settings</h2><button class="btn-icon btn-icon-sm" value="cancel" aria-label="Close"><svg class="ic ic-sm"><use href="#i-x"/></svg></button></header>
+    <label class="setting"><span><b>Shape recognition</b><small>Hold still at the end of a pen stroke to snap it to a clean line, arrow or shape.</small></span><input type="checkbox" class="switch" data-setting="snap"></label>
+    <label class="setting"><span><b>Fingers pan, stylus draws</b><small>Palm rejection for tablets. Turns on automatically the first time a stylus is used.</small></span><input type="checkbox" class="switch" data-setting="touchPans"></label>
+    <label class="setting"><span><b>Mouse wheel pans</b><small>Scroll to move around; hold Ctrl to zoom. Off: the wheel zooms.</small></span><input type="checkbox" class="switch" data-setting="wheelPans"></label>
+    <label class="setting setting-range"><span><b>Stroke smoothing</b><small>Steadies shaky lines. Higher is smoother but lags slightly behind your pen.</small></span><input type="range" min="0" max="80" step="5" data-setting="smoothing"></label>
+    <label class="setting"><span><b>Show cursor position</b><small>World coordinates in the corner, handy for precise diagrams.</small></span><input type="checkbox" class="switch" data-setting="showCoords"></label>
+    <footer class="dlg-foot"><span class="dlg-note" id="storageNote"></span><button class="btn btn-primary" value="ok">Done</button></footer>
+  </form>
+</dialog>
+
+<dialog class="dlg dlg-wide" id="shortcutsDialog" aria-labelledby="shortcutsTitle">
+  <form method="dialog" class="dlg-body">
+    <header class="dlg-head"><h2 id="shortcutsTitle">Keyboard shortcuts</h2><button class="btn-icon btn-icon-sm" value="cancel" aria-label="Close"><svg class="ic ic-sm"><use href="#i-x"/></svg></button></header>
+    <div class="keys" id="keysList"></div>
+  </form>
+</dialog>
+
+<dialog class="dlg" id="confirmDialog" aria-labelledby="confirmTitle">
+  <form method="dialog" class="dlg-body">
+    <header class="dlg-head"><h2 id="confirmTitle">Are you sure?</h2></header>
+    <p class="dlg-text" id="confirmText"></p>
+    <label class="field-text" id="promptRow" hidden><span id="promptLabel">Name</span><input type="text" id="promptInput" maxlength="80"></label>
+    <footer class="dlg-foot">
+      <button class="btn btn-ghost" value="cancel">Cancel</button>
+      <button class="btn btn-primary" value="ok" id="confirmOk">OK</button>
+    </footer>
+  </form>
+</dialog>
+
+<dialog class="dlg" id="installDialog" aria-labelledby="installTitle">
+  <form method="dialog" class="dlg-body">
+    <header class="dlg-head"><h2 id="installTitle">Install on your phone</h2><button class="btn-icon btn-icon-sm" value="cancel" aria-label="Close"><svg class="ic ic-sm"><use href="#i-x"/></svg></button></header>
+    <ol class="steps">
+      <li><b>iPhone / iPad:</b> open this page in Safari, tap the <b>Share</b> button, then <b>Add to Home Screen</b>.</li>
+      <li><b>Android:</b> in Chrome, open the <b>⋮</b> menu and choose <b>Install app</b> or <b>Add to Home screen</b>.</li>
+      <li><b>Desktop:</b> click the install icon at the right end of the address bar.</li>
+    </ol>
+    <p class="dlg-note">Once installed, Vector Plane Studio opens full screen and works offline.</p>
+    <footer class="dlg-foot"><button class="btn btn-primary" value="ok">Got it</button></footer>
+  </form>
+</dialog>
+
+<div class="drop-overlay" id="dropOverlay" aria-hidden="true" hidden><div><svg class="ic"><use href="#i-download"/></svg>Drop PDFs or images to import</div></div>
+<textarea class="text-editor" id="textEditor" aria-label="Edit text" spellcheck="true" hidden></textarea>
+<div class="tooltip" id="tooltip" role="tooltip" hidden></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<input type="file" id="fileInput" accept=".json,application/json" hidden>
+<input type="file" id="mediaInput" accept="application/pdf,image/*" multiple hidden>
+
+<script type="module" src="js/studio.js"></script>
+<script data-goatcounter="https://zx0409.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+</body>
+</html>
